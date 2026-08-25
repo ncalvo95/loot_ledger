@@ -19,14 +19,14 @@ La RPi 3B tiene solo 1 GB de RAM y una CPU modesta, así que se prioriza consumo
 server/   API + base de datos SQLite
 client/   Frontend React (Vite)
 deploy/   Servicio systemd + scripts de backup/restore
-docs/     Guias adicionales (SSD, dominio propio, acceso remoto)
+docs/     Guías adicionales (SSD, dominio propio, acceso remoto)
 Dockerfile, docker-compose.yml
 ```
 
-> Para instalar en un SSD por USB (recomendado para uso 24/7) y exponer la
-> app en internet con tu propio dominio (ej. `www.loot-ledger.io`) sin abrir
-> puertos en el router, ver
-> [`docs/deploy-ssd-domain.md`](docs/deploy-ssd-domain.md).
+> Para instalar en un SSD por USB (recomendado para uso 24/7) y para el
+> acceso remoto — ya sea para probar gratis con DuckDNS o, más adelante,
+> con tu propio dominio (ej. `www.loot-ledger.io`) sin abrir puertos en el
+> router — ver [`docs/deploy-ssd-domain.md`](docs/deploy-ssd-domain.md).
 
 ## Usuario administrador por defecto
 

@@ -7,10 +7,21 @@ por `www.loot-ledger.io` en vez de una IP.
 **Resumen de la recomendación**: bootear la Raspberry Pi *directo desde el
 SSD* (no desde la SD — para uso 24/7 el SSD es mucho más durable ante
 escritura constante que una SD, que es la causa típica de que una Pi "se
-muera" en proyectos que corren todo el día). Para el acceso remoto con
-dominio propio, la opción recomendada es **Cloudflare Tunnel**: es gratis, no
-requiere abrir puertos en el router, funciona aunque tu ISP no te dé IP
-pública (CGNAT, muy común en Argentina), y maneja el certificado HTTPS solo.
+muera" en proyectos que corren todo el día).
+
+Para el acceso remoto, esta guía cubre dos caminos:
+
+- **Ahora, para probar** (gratis, sin comprar dominio): **DuckDNS + Caddy**.
+  Necesita que tu conexión de casa tenga IP pública real (sin CGNAT) y abrir
+  los puertos 80/443 en el router.
+- **Más adelante, si comprás `www.loot-ledger.io`** (o si tu conexión tiene
+  CGNAT y DuckDNS no te funciona): **Cloudflare Tunnel**. Gratis también, no
+  requiere abrir puertos en el router, funciona aunque tu ISP no te dé IP
+  pública, y maneja el certificado HTTPS solo.
+
+Pasar de uno a otro más adelante es cambiar una variable en `server/.env` y
+correr el perfil de Docker Compose correspondiente — no hay que tocar nada
+más.
 
 No hace falta tocar nada del código de la app para que funcione con un
 dominio propio — las URLs del frontend son todas relativas y la cookie de
@@ -23,10 +34,17 @@ Docker, el túnel), no cambios en `client/` ni `server/`.
 ## 0. Qué vas a necesitar
 
 - La Raspberry Pi 3B, el SSD por USB, una PC para flashear la imagen.
-- El dominio `loot-ledger.io` **comprado** en algún registrador (Namecheap,
-  Cloudflare Registrar, etc.) — si todavía no lo compraste, es el primer
-  paso. Los `.io` rondan USD 35-60/año, más caros que un `.com`.
-- Una cuenta gratuita en [Cloudflare](https://dash.cloudflare.com/sign-up).
+- Para probar ahora: una cuenta gratuita en
+  [DuckDNS](https://www.duckdns.org) (podés entrar directo con GitHub o
+  Google, no hace falta registrarte aparte).
+- Para más adelante, cuando compres el dominio: `loot-ledger.io` en algún
+  registrador (Namecheap, Cloudflare Registrar, etc. — los `.io` rondan USD
+  35-60/año) y una cuenta gratuita en
+  [Cloudflare](https://dash.cloudflare.com/sign-up). Nada de esto hace falta
+  todavía si vas a arrancar con DuckDNS.
+- **Importante, antes de todo**: confirmá que tu conexión de casa no está
+  detrás de CGNAT (ver el aviso al principio de la sección 6). Si lo está,
+  saltate DuckDNS y andá directo a la sección de Cloudflare Tunnel.
 
 ---
 
@@ -117,22 +135,70 @@ conectado al mismo WiFi.
   en Windows 10+ y Android es más variable). Esto **solo funciona dentro**
   de tu red, no sirve para acceder desde afuera.
 
-## 6. Acceso desde afuera + `www.loot-ledger.io`
+## 6. Acceso desde afuera
 
-### Por qué Cloudflare Tunnel y no el port-forwarding clásico
+### Paso 0 (obligatorio): ¿tu conexión tiene IP pública real, o CGNAT?
 
-El método clásico (abrir los puertos 80/443 en el router hacia la Pi) tiene
-dos problemas para este caso: necesita que tu conexión tenga IP pública real
-(muchos ISPs en Argentina usan CGNAT, donde varios clientes comparten una
-IP pública y el port-forwarding directamente no funciona salvo que pidas
-"IP pública" como servicio adicional), y además tenés que manejar vos el
-certificado HTTPS (Let's Encrypt con renovación automática, típicamente con
-un proxy como Caddy). Cloudflare Tunnel evita las dos cosas: la Pi abre una
-conexión **saliente** hacia Cloudflare (eso funciona siempre, incluso detrás
-de CGNAT) y Cloudflare rutea el tráfico público hacia adentro. El
-certificado HTTPS lo maneja Cloudflare automáticamente.
+Desde el celular conectado al WiFi de casa, abrí
+`https://api.ipify.org` y anotá la IP que te muestra. Después entrá al panel
+de administración del router (normalmente `192.168.0.1` o `192.168.1.1`) y
+fijate la IP que muestra en la página de estado de Internet/WAN.
 
-### Pasos
+- **Si son la misma IP**: tenés IP pública real, DuckDNS + Caddy (sección
+  6a) va a funcionar.
+- **Si son distintas** (o el router muestra un rango raro tipo
+  `100.64.x.x`–`100.127.x.x`): tu ISP usa CGNAT, y ningún port-forwarding va
+  a funcionar nunca, sea con DuckDNS o cualquier otro nombre. Saltá directo
+  a la sección 6b (Cloudflare Tunnel), que no depende de esto.
+
+### 6a. Ahora, para probar: DuckDNS + Caddy (gratis, sin comprar dominio)
+
+Esto usa el método clásico: DuckDNS le pone un nombre fijo a tu IP pública
+de casa (y la actualiza sola si cambia), forwardeás dos puertos en el
+router, y Caddy (un proxy chiquito que ya viene armado en el
+`docker-compose.yml`) le pide solo el certificado HTTPS a Let's Encrypt y
+reenvía todo a la app.
+
+1. Entrá a [duckdns.org](https://www.duckdns.org) y logueate con GitHub,
+   Google, etc.
+2. En "sub domain" escribí algo como `loot-ledger` → click **add domain**.
+   Te queda `loot-ledger.duckdns.org`.
+3. Arriba de la página vas a ver tu **token** (un código largo tipo
+   `a1b2c3d4-...`). Copialo.
+4. En la Pi, agregá esto a `server/.env`:
+   ```bash
+   cat >> server/.env << 'EOF'
+   DUCKDNS_SUBDOMAIN=loot-ledger
+   DUCKDNS_TOKEN=<el-token-que-copiaste>
+   PUBLIC_DOMAIN=loot-ledger.duckdns.org
+   EOF
+   ```
+5. En tu **router**, forwardeá estos dos puertos hacia la IP local de la Pi
+   (la fija que le asignaste en el paso 5):
+   - Puerto externo `80` → Pi, puerto `80`
+   - Puerto externo `443` → Pi, puerto `443`
+   
+   (Esto varía de router en router — buscá "port forwarding" o "NAT" en el
+   panel de administración.)
+6. Levantá los dos servicios nuevos:
+   ```bash
+   docker compose --profile duckdns up -d
+   ```
+7. Esperá 1-2 minutos (Caddy tiene que pedirle el certificado a Let's
+   Encrypt la primera vez) y entrá desde el celular con **datos móviles**
+   (no WiFi de casa, para probar que es de verdad desde afuera) a:
+   `https://loot-ledger.duckdns.org`
+
+Si no carga: revisá que el port-forwarding esté bien apuntado a la IP local
+correcta de la Pi, y mirá los logs con `docker compose logs caddy`.
+
+### 6b. Más adelante, con `www.loot-ledger.io`: Cloudflare Tunnel
+
+Cuando compres el dominio (o si en el paso 0 te dio que tenés CGNAT), este
+es el método recomendado: la Pi abre una conexión **saliente** hacia
+Cloudflare (eso funciona siempre, incluso con CGNAT), y Cloudflare rutea el
+tráfico público hacia adentro sin que tengas que tocar el router para nada.
+El certificado HTTPS también lo maneja Cloudflare solo.
 
 1. Anda a Cloudflare → **Add a site** → escribí `loot-ledger.io`. Elegí el
    plan Free.
@@ -149,11 +215,16 @@ certificado HTTPS lo maneja Cloudflare automáticamente.
    ```bash
    echo "CLOUDFLARE_TUNNEL_TOKEN=<el-token-que-copiaste>" >> server/.env
    ```
-6. Levantá el túnel (además de la app, que ya está corriendo):
+6. Si tenías levantado el perfil `duckdns`, bajalo primero (los dos métodos
+   no hace falta correrlos juntos):
+   ```bash
+   docker compose --profile duckdns down
+   ```
+7. Levantá el túnel (además de la app, que ya está corriendo):
    ```bash
    docker compose --profile tunnel up -d
    ```
-7. Volvé al dashboard de Cloudflare, en la misma pantalla del túnel andá a
+8. Volvé al dashboard de Cloudflare, en la misma pantalla del túnel andá a
    **Public Hostname** → **Add a public hostname**:
    - Subdomain: `www`
    - Domain: `loot-ledger.io`
@@ -161,28 +232,19 @@ certificado HTTPS lo maneja Cloudflare automáticamente.
    - URL: `loot-ledger:3000` (el nombre del servicio en `docker-compose.yml`,
      **no** `localhost` — el contenedor de Cloudflare se comunica con el de
      la app por la red interna de Docker, usando el nombre del servicio).
-8. (Recomendado) agregá un segundo Public Hostname igual pero con Subdomain
+9. (Recomendado) agregá un segundo Public Hostname igual pero con Subdomain
    vacío, para que `loot-ledger.io` sin el `www` también entre.
-9. Listo — `https://www.loot-ledger.io` ya apunta a tu Pi. Sin puertos
-   abiertos en el router, sin IP fija, con HTTPS automático.
+10. Listo — `https://www.loot-ledger.io` ya apunta a tu Pi. Sin puertos
+    abiertos en el router, sin IP fija, con HTTPS automático. Si habías
+    forwardeado los puertos 80/443 para DuckDNS, ya los podés cerrar en el
+    router — con este método no hace falta ningún puerto abierto.
 
-### Puertos
+### Puertos, resumen
 
-Con este método **no tenés que tocar el firewall/NAT del router en
-absoluto**. Ni siquiera el puerto 3000 queda expuesto a internet — el único
-tráfico es la conexión saliente que la Pi abre hacia Cloudflare. El puerto
-3000 sigue existiendo solo puertas adentro (entre el contenedor de la app y
-el del túnel).
-
-### Alternativa clásica (si preferís no depender de Cloudflare)
-
-Solo como referencia, sin entrar en el detalle: necesitarías (a) IP pública
-real o un servicio de DNS dinámico (DuckDNS, No-IP) si tu IP cambia, (b)
-forwardear los puertos 80 y 443 del router hacia la Pi, y (c) un reverse
-proxy como [Caddy](https://caddyserver.com/) delante de la app para manejar
-Let's Encrypt automáticamente (nunca expongas el puerto 3000 sin HTTPS
-directo a internet — la app maneja contraseñas). Es más frágil y más trabajo
-de mantener que el túnel, y no funciona si tu conexión tiene CGNAT.
+| Método | Puertos que abrís en el router | Puerto 3000 |
+|---|---|---|
+| DuckDNS + Caddy | `80` y `443` hacia la Pi | Nunca expuesto a internet directo (Caddy es el único público) |
+| Cloudflare Tunnel | Ninguno | Nunca expuesto — ni siquiera el 80/443 |
 
 ## 7. Cambiar la contraseña del admin
 
@@ -200,7 +262,7 @@ Con los scripts `deploy/backup.sh` y `deploy/restore.sh` (ver
 ./deploy/backup.sh
 # Copiá el .tar.gz generado en ./backups al medio nuevo (scp, pendrive, etc.)
 
-# En el medio nuevo, despues de clonar el repo y antes o despues de
+# En el medio nuevo, después de clonar el repo y antes o después de
 # "docker compose up -d --build"
 ./deploy/restore.sh ruta/al/loot-ledger-backup-XXXXXXXX.tar.gz
 ```
@@ -210,15 +272,26 @@ script arma un contenedor descartable que comparte el volumen de datos,
 así que funciona sin importar el nombre del proyecto/carpeta ni el tamaño
 del disco nuevo.
 
-## 9. Checklist final
+## 9. Checklist — fase de pruebas (DuckDNS)
 
 - [ ] La Pi bootea del SSD (`df -h /` muestra el SSD, no la SD)
 - [ ] `docker compose up -d --build` corriendo sin errores
 - [ ] Accesible por IP local desde el celular/PC en la misma red
-- [ ] Nameservers del dominio apuntando a Cloudflare (verificado en el
-      dashboard de Cloudflare, estado "Active")
-- [ ] `docker compose --profile tunnel up -d` corriendo
-- [ ] `https://www.loot-ledger.io` responde desde una red distinta (datos
-      móviles, por ejemplo, para probar que es de verdad "desde afuera")
+- [ ] Confirmaste que tu conexión NO tiene CGNAT (paso 0 de la sección 6)
+- [ ] Subdominio creado en DuckDNS, token copiado a `server/.env`
+- [ ] Puertos 80 y 443 forwardeados en el router hacia la Pi
+- [ ] `docker compose --profile duckdns up -d` corriendo
+- [ ] `https://loot-ledger.duckdns.org` responde desde datos móviles
 - [ ] Contraseña de `administrator` cambiada
 - [ ] Un backup hecho y guardado en otro lugar (no solo en la Pi)
+
+## 10. Checklist — cuando compres `www.loot-ledger.io`
+
+- [ ] Dominio comprado y nameservers apuntando a Cloudflare (estado
+      "Active" en el dashboard)
+- [ ] `CLOUDFLARE_TUNNEL_TOKEN` en `server/.env`
+- [ ] `docker compose --profile duckdns down` (si veías corriendo DuckDNS)
+- [ ] `docker compose --profile tunnel up -d` corriendo
+- [ ] Public Hostname configurado en Cloudflare (`www` → `loot-ledger:3000`)
+- [ ] `https://www.loot-ledger.io` responde desde datos móviles
+- [ ] Puertos 80/443 cerrados de nuevo en el router (ya no hacen falta)

@@ -35,6 +35,46 @@ services:
     profiles:
       - tunnel
 
+  # Alternativa gratis a Cloudflare Tunnel para probar el acceso remoto sin
+  # comprar un dominio todavía: DuckDNS le pone nombre a tu IP pública de
+  # casa, y Caddy hace de reverse proxy con HTTPS automático (Let's Encrypt)
+  # delante de la app. Necesita que tu conexión NO esté detrás de CGNAT y
+  # que abras los puertos 80 y 443 del router hacia la Pi (ver
+  # docs/deploy-ssd-domain.md). Se activa con el perfil "duckdns":
+  #   docker compose --profile duckdns up -d
+  duckdns:
+    image: lscr.io/linuxserver/duckdns:latest
+    container_name: loot-ledger-duckdns
+    restart: unless-stopped
+    environment:
+      SUBDOMAINS: ${DUCKDNS_SUBDOMAIN:-}
+      TOKEN: ${DUCKDNS_TOKEN:-}
+      LOG_FILE: "false"
+    profiles:
+      - duckdns
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: loot-ledger-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # Cambiar a "www.loot-ledger.io" (o lo que sea) el día que se compre
+      # el dominio: es el único lugar que hay que tocar para migrar.
+      DOMAIN: ${PUBLIC_DOMAIN:-loot-ledger.duckdns.org}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - loot-ledger
+    profiles:
+      - duckdns
+
 volumes:
   loot_ledger_data:
     name: loot_ledger_data
+  caddy_data:
+  caddy_config:

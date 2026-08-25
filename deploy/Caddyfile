@@ -1,0 +1,11 @@
+# Caddy resuelve el certificado HTTPS solo (Let's Encrypt) para el dominio
+# que le pases en la variable DOMAIN, y reenvía todo el tráfico al servicio
+# "loot-ledger" del docker-compose (puerto 3000, interno a la red de Docker).
+#
+# Para probar con DuckDNS: DOMAIN=loot-ledger.duckdns.org
+# El día que se compre el dominio propio: DOMAIN=www.loot-ledger.io
+# (se cambia en server/.env, no hace falta tocar este archivo)
+
+{$DOMAIN:loot-ledger.duckdns.org} {
+	reverse_proxy loot-ledger:3000
+}
