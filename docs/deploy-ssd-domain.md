@@ -43,50 +43,96 @@ Docker, el túnel), no cambios en `client/` ni `server/`.
   [Cloudflare](https://dash.cloudflare.com/sign-up). Nada de esto hace falta
   todavía si vas a arrancar con DuckDNS.
 - **Importante, antes de todo**: confirmá que tu conexión de casa no está
-  detrás de CGNAT (ver el aviso al principio de la sección 6). Si lo está,
+  detrás de CGNAT (ver el aviso al principio de la sección 5). Si lo está,
   saltate DuckDNS y andá directo a la sección de Cloudflare Tunnel.
 
 ---
 
-## 1. Flashear el sistema operativo en el SSD
+## 1. Vas a flashear DOS tarjetas/discos, no una sola
+
+Esto es lo que más confusión suele generar, así que aclarémoslo antes de
+tocar nada: al final de esta sección vas a tener **dos medios flasheados**,
+con roles totalmente distintos:
+
+| Medio | Para qué sirve | Cuánto dura en uso |
+|---|---|---|
+| **SD** (la de 32GB) | Arrancar la Pi *una sola vez*, solo para decirle "de ahora en más, arrancá por USB" | 5 minutos. Después se saca y no se vuelve a usar (ni siquiera queda conectada) |
+| **SSD** (el de 240GB) | Donde vive el sistema operativo y la app **para siempre**, una vez que la Pi arranca de ahí | Para siempre — es el disco definitivo |
+
+La razón de este paso extra es pura limitación de la Raspberry Pi 3B: de
+fábrica, **solo** sabe arrancar desde la SD. Para que arranque desde un SSD
+por USB hay que decírselo explícitamente una vez, y para eso necesitás que
+la Pi ya esté corriendo desde *algún* lado — ahí entra la SD, como
+herramienta descartable, no como el lugar final de nada.
+
+### 1.1. Flashear el SSD (el disco definitivo)
 
 1. Conectá el SSD por USB **a tu PC** (no a la Pi todavía).
 2. Instalá [Raspberry Pi Imager](https://www.raspberrypi.com/software/).
-3. Elegí OS → "Raspberry Pi OS Lite (64-bit)" (no hace falta el escritorio,
-   solo consume RAM que no vas a usar).
-4. Elegí Storage → tu SSD.
+3. Elegí OS → "Raspberry Pi OS Lite (64-bit)".
+4. Elegí Storage → **tu SSD** (fijate bien de no elegir la SD por error acá).
 5. Antes de escribir, apretá el ícono de engranaje (opciones avanzadas) y
-   configurá ahí mismo: hostname (ej. `loot-ledger`), habilitar SSH, usuario
-   y contraseña, y WiFi si la Pi no va por cable. Así no necesitás conectarle
+   configurá: hostname (ej. `loot-ledger`), habilitar SSH, usuario y
+   contraseña, y WiFi si la Pi no va por cable. Así no necesitás conectarle
    teclado y monitor a la Pi en ningún momento.
-6. Escribí la imagen y esperá a que termine.
+6. Escribí la imagen y esperá a que termine. **Desconectá el SSD de la PC
+   pero todavía no lo conectes a la Pi.**
 
-## 2. Habilitar el arranque por USB (una sola vez)
+### 1.2. Flashear la SD (la herramienta descartable de este paso)
 
-La Raspberry Pi 3B por defecto intenta bootear primero desde la SD. Para que
-arranque directo del SSD:
+Repetí exactamente lo mismo con la SD de 32GB:
 
-1. Si la Pi **ya bootea** desde alguna SD con Raspberry Pi OS actualizado:
-   conectate por SSH y corré:
+1. Conectala a la PC, abrí Raspberry Pi Imager de nuevo.
+2. Mismo OS: "Raspberry Pi OS Lite (64-bit)".
+3. Storage → **tu SD** esta vez.
+4. Mismas opciones avanzadas (hostname, SSH, usuario/contraseña, WiFi) —
+   podés poner el mismo hostname `loot-ledger`, no importa, porque nunca va
+   a estar prendida al mismo tiempo que el SSD.
+5. Escribí la imagen.
+
+### 1.3. Habilitar el arranque por USB (usando la SD, una sola vez)
+
+1. Poné **solo la SD** en la Pi (el SSD todavía no va conectado) y prendé.
+   Va a arrancar de la SD normalmente — esto es esperado y correcto.
+2. Conectate por SSH (`ssh <usuario>@loot-ledger.local`, o por la IP que le
+   haya dado tu router) y corré:
    ```bash
    sudo rpi-eeprom-update -a
    sudo reboot
-   sudo raspi-config
-   # Advanced Options → Boot Order → USB Boot → Sí
-   sudo reboot
    ```
-2. Apagá la Pi, sacá la SD, dejá solo el SSD conectado, prendé de nuevo.
-   Debería bootear del SSD sin problema.
-3. Si nunca tuviste una SD funcionando en esta Pi: usá temporalmente
-   cualquier SD vieja con Raspberry Pi OS solo para hacer el paso 1, después
-   la sacás y no la volvés a necesitar.
+3. Esperá a que reinicie, conectate de nuevo por SSH y corré:
+   ```bash
+   sudo raspi-config
+   ```
+   Andá a **Advanced Options → Boot Order** y elegí la opción que dice
+   **USB Boot** (o "SD Card Boot" seguido de USB — el nombre exacto varía
+   según la versión de `raspi-config`, buscá la que priorice USB). Salí y
+   confirmá el reinicio cuando te lo pida.
+4. Apagá la Pi del todo (`sudo poweroff` o desenchufala), **sacá la SD**,
+   **conectá el SSD** en su lugar, y prendé.
 
-> Si el SSD no bootea (pasa con algunos adaptadores USB-SATA muy genéricos):
-> como plan B, bootea desde la SD de 32GB y montá el SSD en
-> `/home/pi/loot_ledger` vía `/etc/fstab` — la escritura pesada (la base de
-> datos) sigue cayendo en el SSD igual, solo que el sistema arranca de la SD.
+Si arrancó bien: estás corriendo desde el SSD, y la SD ya cumplió su
+función — guardala para otro uso, no hace falta que vuelva a esta Pi.
 
-## 3. Instalar Docker
+### Si no arranca del SSD
+
+- **Pantalla completamente negra, sin nada**: lo más probable es que el
+  paso 1.3 no haya quedado guardado (por ejemplo, si no reiniciaste después
+  de cambiar el Boot Order). Volvé a poner la SD sola, entrá de nuevo y
+  confirmá el Boot Order con `sudo raspi-config` otra vez.
+- **Seguís sin arrancar aunque el Boot Order ya diga USB primero**: puede
+  ser el adaptador USB-SATA del gabinete del SSD (algunos genéricos no son
+  compatibles con el boot de la Pi, aunque sí funcionan para leer/escribir
+  datos una vez arrancada de otro lado), o que la SSD esté tomando más
+  corriente de la que da el puerto USB de la Pi — probá con un hub USB
+  alimentado en el medio, o alimentación externa si el gabinete lo permite.
+- **Plan B si nada de esto funciona**: bootear siempre de la SD de 32GB
+  (ya no como paso temporal, sino como forma permanente), y montar el SSD
+  en `/home/pi/loot_ledger` vía `/etc/fstab` — la escritura pesada (la base
+  de datos) sigue cayendo en el SSD igual, solo que el sistema arranca de
+  la SD en vez del SSD.
+
+## 2. Instalar Docker
 
 Ya conectado por SSH a la Pi (bootenado desde el SSD):
 
@@ -97,7 +143,7 @@ sudo usermod -aG docker $USER
 sudo apt install -y docker-compose-plugin
 ```
 
-## 4. Clonar el repo y levantar la app
+## 3. Clonar el repo y levantar la app
 
 ```bash
 git clone https://github.com/ncalvo95/loot_ledger.git
@@ -121,11 +167,11 @@ docker compose up -d --build
 curl http://localhost:3000/api/health   # {"ok":true} si arrancó bien
 ```
 
-## 5. Acceso dentro de tu red de casa + IP fija
+## 4. Acceso dentro de tu red de casa + IP fija
 
 Ya andás en `http://<ip-local-de-la-pi>:3000` desde cualquier dispositivo
 conectado al mismo WiFi. Pero esa IP se la asigna el router por DHCP y
-puede cambiar (por ejemplo, si reiniciás el router) — y en el paso 6a vas a
+puede cambiar (por ejemplo, si reiniciás el router) — y en el paso 5a vas a
 necesitar apuntar el port-forwarding a una IP que **no cambie nunca**. Fijá
 la IP local **antes** de configurar el port-forwarding, por cualquiera de
 estos dos caminos:
@@ -187,7 +233,7 @@ curl http://192.168.1.194:3000/api/health   # {"ok":true}
   en Windows 10+ y Android es más variable). Esto **solo funciona dentro**
   de tu red, no sirve para acceder desde afuera.
 
-## 6. Acceso desde afuera
+## 5. Acceso desde afuera
 
 ### Paso 0 (obligatorio): ¿tu conexión tiene IP pública real, o CGNAT?
 
@@ -197,13 +243,13 @@ de administración del router (normalmente `192.168.0.1` o `192.168.1.1`) y
 fijate la IP que muestra en la página de estado de Internet/WAN.
 
 - **Si son la misma IP**: tenés IP pública real, DuckDNS + Caddy (sección
-  6a) va a funcionar.
+  5a) va a funcionar.
 - **Si son distintas** (o el router muestra un rango raro tipo
   `100.64.x.x`–`100.127.x.x`): tu ISP usa CGNAT, y ningún port-forwarding va
   a funcionar nunca, sea con DuckDNS o cualquier otro nombre. Saltá directo
-  a la sección 6b (Cloudflare Tunnel), que no depende de esto.
+  a la sección 5b (Cloudflare Tunnel), que no depende de esto.
 
-### 6a. Ahora, para probar: DuckDNS + Caddy (gratis, sin comprar dominio)
+### 5a. Ahora, para probar: DuckDNS + Caddy (gratis, sin comprar dominio)
 
 Esto usa el método clásico: DuckDNS le pone un nombre fijo a tu IP pública
 de casa (y la actualiza sola si cambia), forwardeás dos puertos en el
@@ -226,7 +272,7 @@ reenvía todo a la app.
    EOF
    ```
 5. En tu **router**, forwardeá estos dos puertos hacia la IP local fija de
-   la Pi del paso 5 (en esta guía, `192.168.1.194`):
+   la Pi de la sección 4 (en esta guía, `192.168.1.194`):
    - Puerto externo `80` → `192.168.1.194`, puerto `80`
    - Puerto externo `443` → `192.168.1.194`, puerto `443`
 
@@ -244,7 +290,7 @@ reenvía todo a la app.
 Si no carga: revisá que el port-forwarding esté bien apuntado a la IP local
 correcta de la Pi, y mirá los logs con `docker compose logs caddy`.
 
-### 6b. Más adelante, con `www.loot-ledger.io`: Cloudflare Tunnel
+### 5b. Más adelante, con `www.loot-ledger.io`: Cloudflare Tunnel
 
 Cuando compres el dominio (o si en el paso 0 te dio que tenés CGNAT), este
 es el método recomendado: la Pi abre una conexión **saliente** hacia
@@ -298,13 +344,13 @@ El certificado HTTPS también lo maneja Cloudflare solo.
 | DuckDNS + Caddy | `80` y `443` hacia la Pi | Nunca expuesto a internet directo (Caddy es el único público) |
 | Cloudflare Tunnel | Ninguno | Nunca expuesto — ni siquiera el 80/443 |
 
-## 7. Cambiar la contraseña del admin
+## 6. Cambiar la contraseña del admin
 
 Si no la cambiaste en el `.env` antes del primer arranque, entrá con
 `administrator` / `11223344` y cambiala desde **Panel → Usuarios → Resetear
 contraseña** apenas tengas acceso.
 
-## 8. Migrar los datos (de la SD vieja, o a futuro entre discos)
+## 7. Migrar los datos (de la SD vieja, o a futuro entre discos)
 
 Con los scripts `deploy/backup.sh` y `deploy/restore.sh` (ver
 `README.md` → sección Backup para el detalle). En resumen:
@@ -324,14 +370,14 @@ script arma un contenedor descartable que comparte el volumen de datos,
 así que funciona sin importar el nombre del proyecto/carpeta ni el tamaño
 del disco nuevo.
 
-## 9. Checklist — fase de pruebas (DuckDNS)
+## 8. Checklist — fase de pruebas (DuckDNS)
 
 - [ ] La Pi bootea del SSD (`df -h /` muestra el SSD, no la SD)
 - [ ] `docker compose up -d --build` corriendo sin errores
 - [ ] Accesible por IP local desde el celular/PC en la misma red
 - [ ] IP local fija asignada a la Pi (reserva en el router o estática) y
       verificada con `curl http://<esa-ip>:3000/api/health`
-- [ ] Confirmaste que tu conexión NO tiene CGNAT (paso 0 de la sección 6)
+- [ ] Confirmaste que tu conexión NO tiene CGNAT (paso 0 de la sección 5)
 - [ ] Subdominio creado en DuckDNS, token copiado a `server/.env`
 - [ ] Puertos 80 y 443 forwardeados en el router hacia la Pi
 - [ ] `docker compose --profile duckdns up -d` corriendo
@@ -339,7 +385,7 @@ del disco nuevo.
 - [ ] Contraseña de `administrator` cambiada
 - [ ] Un backup hecho y guardado en otro lugar (no solo en la Pi)
 
-## 10. Checklist — cuando compres `www.loot-ledger.io`
+## 9. Checklist — cuando compres `www.loot-ledger.io`
 
 - [ ] Dominio comprado y nameservers apuntando a Cloudflare (estado
       "Active" en el dashboard)
