@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  @apply bg-ink-950 text-slate-100 font-body bg-grid bg-grid;
+  background-color: #07070c;
+  background-image:
+    linear-gradient(rgba(45,230,255,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(45,230,255,0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(45, 230, 255, 0.35);
+}
+
+.panel {
+  @apply bg-ink-900/80 border border-ink-600 rounded-xl backdrop-blur-sm;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 font-display text-xs tracking-widest uppercase font-bold transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed;
+}
+
+.btn-primary {
+  @apply btn bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/60 hover:bg-neon-cyan/20 hover:shadow-neon;
+}
+
+.btn-secondary {
+  @apply btn bg-ink-700 text-slate-200 border border-ink-600 hover:border-neon-purple/60 hover:text-neon-purple hover:shadow-neon-purple;
+}
+
+.btn-danger {
+  @apply btn bg-neon-red/10 text-neon-red border border-neon-red/60 hover:bg-neon-red/20 hover:shadow-neon-red;
+}
+
+.btn-ghost {
+  @apply btn bg-transparent text-slate-400 border border-transparent hover:text-slate-100 hover:border-ink-600;
+}
+
+.field {
+  @apply w-full rounded-lg bg-ink-800 border border-ink-600 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-neon-cyan/70 focus:shadow-neon transition-all;
+}
+
+.label {
+  @apply block text-xs font-display uppercase tracking-widest text-slate-400 mb-1;
+}
+
+.title-glow {
+  @apply font-display uppercase tracking-widest text-neon-cyan;
+  text-shadow: 0 0 12px rgba(45,230,255,0.55);
+}
+
+.badge {
+  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-display uppercase tracking-widest border;
+}

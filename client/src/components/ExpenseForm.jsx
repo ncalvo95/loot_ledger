@@ -1,0 +1,199 @@
+import React, { useState } from "react";
+import { api } from "../api.js";
+
+const CURRENCIES = [
+  { code: "EUR", label: "EUR - Euro" },
+  { code: "USD", label: "USD - Dolar" },
+  { code: "ARS", label: "ARS - Peso Argentino" },
+];
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export default function ExpenseForm({ projectId, members, categories, onCreated, onCancel }) {
+  const [categoryId, setCategoryId] = useState(categories[0]?.id || "");
+  const [newCategory, setNewCategory] = useState("");
+  const [title, setTitle] = useState("");
+  const [currency, setCurrency] = useState("EUR");
+  const [amount, setAmount] = useState("");
+  const [paidBy, setPaidBy] = useState(members[0]?.id || "");
+  const [date, setDate] = useState(today());
+  const [participantIds, setParticipantIds] = useState(members.map((m) => m.id));
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const toggleParticipant = (id) => {
+    setParticipantIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const reset = () => {
+    setTitle("");
+    setAmount("");
+    setNewCategory("");
+    setParticipantIds(members.map((m) => m.id));
+    setDate(today());
+    setError("");
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (participantIds.length === 0) {
+      setError("Selecciona al menos una persona en 'Para'.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const payload = {
+        title,
+        currency,
+        amount,
+        paidBy: Number(paidBy),
+        date,
+        participantIds,
+      };
+      if (newCategory.trim()) {
+        payload.categoryName = newCategory.trim();
+      } else {
+        payload.categoryId = Number(categoryId);
+      }
+      await api.post(`/projects/${projectId}/expenses`, payload);
+      reset();
+      onCreated();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="panel p-5 space-y-4 border-neon-green/30">
+      <h3 className="font-display uppercase tracking-widest text-neon-green text-sm">Nuevo gasto</h3>
+
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label className="label">Categoria</label>
+          <select
+            className="field"
+            value={newCategory ? "" : categoryId}
+            onChange={(e) => {
+              setCategoryId(e.target.value);
+              setNewCategory("");
+            }}
+            disabled={!!newCategory}
+          >
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <input
+            className="field mt-2"
+            placeholder="...o crear categoria nueva"
+            value={newCategory}
+            onChange={(e) => setNewCategory(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="label">Titulo</label>
+          <input
+            className="field"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Ej: Mouse, Jamon, Queso"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="label">Importe</label>
+          <div className="flex gap-2">
+            <select className="field w-32" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.code}
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              className="field"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+              required
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="label">Pagado por</label>
+          <select className="field" value={paidBy} onChange={(e) => setPaidBy(e.target.value)}>
+            {members.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.username}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="label">Fecha</label>
+          <input type="date" className="field" value={date} onChange={(e) => setDate(e.target.value)} required />
+        </div>
+      </div>
+
+      <div>
+        <label className="label">Para</label>
+        <div className="flex flex-wrap gap-2">
+          {members.map((m) => {
+            const checked = participantIds.includes(m.id);
+            return (
+              <label
+                key={m.id}
+                className={`badge cursor-pointer select-none ${
+                  checked
+                    ? "border-neon-cyan/70 text-neon-cyan bg-neon-cyan/10"
+                    : "border-ink-600 text-slate-400 hover:border-slate-400"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={checked}
+                  onChange={() => toggleParticipant(m.id)}
+                />
+                {checked ? "✓ " : ""}
+                {m.username}
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
+      {error && <p className="text-neon-red text-sm">{error}</p>}
+
+      <div className="flex gap-3 pt-2">
+        <button type="submit" disabled={busy} className="btn-primary">
+          {busy ? "Guardando..." : "Anadir Gasto"}
+        </button>
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() => {
+            reset();
+            onCancel();
+          }}
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}

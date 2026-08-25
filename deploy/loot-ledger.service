@@ -1,0 +1,15 @@
+[Unit]
+Description=Loot Ledger - triangulacion de gastos
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/loot_ledger/server
+EnvironmentFile=/home/pi/loot_ledger/server/.env
+ExecStart=/usr/bin/node src/index.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

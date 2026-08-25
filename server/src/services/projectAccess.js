@@ -1,0 +1,54 @@
+const db = require("../db");
+
+function getMembership(projectId, userId) {
+  return db
+    .prepare("SELECT * FROM project_members WHERE project_id = ? AND user_id = ?")
+    .get(projectId, userId);
+}
+
+function isProjectOwner(project, userId) {
+  return project.owner_id === userId;
+}
+
+function canManageProject(project, req) {
+  return req.user.role === "admin" || isProjectOwner(project, req.user.id);
+}
+
+function loadProject(req, res, next) {
+  const projectId = req.params.id || req.params.projectId;
+  const project = db.prepare("SELECT * FROM projects WHERE id = ?").get(projectId);
+  if (!project) return res.status(404).json({ error: "Proyecto no encontrado." });
+  req.project = project;
+  next();
+}
+
+function requireProjectAccess(req, res, next) {
+  if (req.user.role === "admin") return next();
+  const membership = getMembership(req.project.id, req.user.id);
+  if (!membership || membership.status === "removed") {
+    return res.status(403).json({ error: "No tenes acceso a este proyecto." });
+  }
+  req.membership = membership;
+  next();
+}
+
+// Miembros activos ('member'), usados para asignar pagos y participantes de nuevos gastos.
+function getActiveMembers(projectId) {
+  return db
+    .prepare(
+      `SELECT u.id, u.username FROM project_members pm
+       JOIN users u ON u.id = pm.user_id
+       WHERE pm.project_id = ? AND pm.status = 'member'
+       ORDER BY u.username ASC`
+    )
+    .all(projectId);
+}
+
+module.exports = {
+  getMembership,
+  isProjectOwner,
+  canManageProject,
+  loadProject,
+  requireProjectAccess,
+  getActiveMembers,
+};
