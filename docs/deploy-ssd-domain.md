@@ -121,13 +121,65 @@ docker compose up -d --build
 curl http://localhost:3000/api/health   # {"ok":true} si arrancó bien
 ```
 
-## 5. Acceso dentro de tu red de casa
+## 5. Acceso dentro de tu red de casa + IP fija
 
 Ya andás en `http://<ip-local-de-la-pi>:3000` desde cualquier dispositivo
-conectado al mismo WiFi.
+conectado al mismo WiFi. Pero esa IP se la asigna el router por DHCP y
+puede cambiar (por ejemplo, si reiniciás el router) — y en el paso 6a vas a
+necesitar apuntar el port-forwarding a una IP que **no cambie nunca**. Fijá
+la IP local **antes** de configurar el port-forwarding, por cualquiera de
+estos dos caminos:
 
-- Recomendado: en tu router, asignale una **IP fija (DHCP reservation)** a
-  la Pi para que no le cambie la IP local con el tiempo.
+### Opción A (recomendada): reserva de IP en el router
+
+No se toca nada en la Pi — el router le asigna siempre la misma IP a partir
+de su dirección MAC. Sobrevive a reinstalaciones del sistema operativo.
+
+1. En la Pi, conseguí la MAC de la interfaz que estés usando:
+   ```bash
+   ip link show eth0    # si va por cable
+   ip link show wlan0   # si va por WiFi
+   ```
+   Buscá la línea `link/ether xx:xx:xx:xx:xx:xx` — esa es la MAC.
+2. Entrá al panel del router (normalmente `192.168.1.1` en tu red) y buscá
+   la sección de DHCP — suele llamarse "DHCP Reservation", "Static Leases"
+   o "Address Reservation" (el nombre exacto varía según la marca).
+3. Buscá la Pi en la lista de dispositivos conectados (por MAC, o por el
+   hostname `loot-ledger` si lo configuraste al flashear) y asignale
+   `192.168.1.194` de forma fija.
+4. Reiniciá la Pi (`sudo reboot`) para que tome la IP reservada.
+
+### Opción B: IP estática configurada directo en la Pi
+
+Útil si tu router no tiene esa opción. Raspberry Pi OS (Bookworm en
+adelante) usa NetworkManager:
+
+```bash
+nmcli connection show    # para ver el nombre exacto de la conexión activa
+
+sudo nmcli connection modify "Wired connection 1" \
+  ipv4.addresses 192.168.1.194/24 \
+  ipv4.gateway 192.168.1.1 \
+  ipv4.dns "192.168.1.1 8.8.8.8" \
+  ipv4.method manual
+
+sudo nmcli connection up "Wired connection 1"
+```
+
+Cambiá `"Wired connection 1"` por el nombre real que te haya mostrado
+`nmcli connection show` (si es WiFi, va a ser el nombre de tu red). Ojo con
+esta opción: `192.168.1.194` tiene que quedar **fuera del rango de DHCP**
+del router (revisalo en la misma sección de DHCP del panel), o el router le
+podría asignar esa misma IP a otro dispositivo más adelante y quedarían dos
+aparatos peleando por la misma IP.
+
+### Verificar
+
+```bash
+ip addr show | grep 192.168.1.194   # deberia aparecer
+curl http://192.168.1.194:3000/api/health   # {"ok":true}
+```
+
 - Opcional, para no acordarte la IP puertas adentro: si le pusiste hostname
   `loot-ledger` al flashear, Raspberry Pi OS trae mDNS instalado, así que
   probablemente ya podés entrar por `http://loot-ledger.local:3000` desde
@@ -173,11 +225,11 @@ reenvía todo a la app.
    PUBLIC_DOMAIN=loot-ledger.duckdns.org
    EOF
    ```
-5. En tu **router**, forwardeá estos dos puertos hacia la IP local de la Pi
-   (la fija que le asignaste en el paso 5):
-   - Puerto externo `80` → Pi, puerto `80`
-   - Puerto externo `443` → Pi, puerto `443`
-   
+5. En tu **router**, forwardeá estos dos puertos hacia la IP local fija de
+   la Pi del paso 5 (en esta guía, `192.168.1.194`):
+   - Puerto externo `80` → `192.168.1.194`, puerto `80`
+   - Puerto externo `443` → `192.168.1.194`, puerto `443`
+
    (Esto varía de router en router — buscá "port forwarding" o "NAT" en el
    panel de administración.)
 6. Levantá los dos servicios nuevos:
@@ -277,6 +329,8 @@ del disco nuevo.
 - [ ] La Pi bootea del SSD (`df -h /` muestra el SSD, no la SD)
 - [ ] `docker compose up -d --build` corriendo sin errores
 - [ ] Accesible por IP local desde el celular/PC en la misma red
+- [ ] IP local fija asignada a la Pi (reserva en el router o estática) y
+      verificada con `curl http://<esa-ip>:3000/api/health`
 - [ ] Confirmaste que tu conexión NO tiene CGNAT (paso 0 de la sección 6)
 - [ ] Subdominio creado en DuckDNS, token copiado a `server/.env`
 - [ ] Puertos 80 y 443 forwardeados en el router hacia la Pi
