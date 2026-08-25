@@ -1,6 +1,7 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useLanguage } from "../i18n/LanguageContext.jsx";
 
 export function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -18,9 +19,12 @@ export function AdminRoute({ children }) {
 }
 
 export function Loading() {
+  const { t } = useLanguage();
   return (
     <div className="flex items-center justify-center h-64">
-      <span className="font-display uppercase tracking-widest text-neon-cyan animate-pulse">Cargando...</span>
+      <span className="font-display uppercase tracking-widest text-neon-cyan animate-pulse">
+        {t("common.loading")}
+      </span>
     </div>
   );
 }

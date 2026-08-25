@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { api } from "../api.js";
+import { useLanguage } from "../i18n/LanguageContext.jsx";
 
 const CURRENCIES = [
   { code: "EUR", label: "EUR - Euro" },
@@ -12,6 +13,7 @@ function today() {
 }
 
 export default function ExpenseForm({ projectId, members, categories, onCreated, onCancel }) {
+  const { t, tError } = useLanguage();
   const [categoryId, setCategoryId] = useState(categories[0]?.id || "");
   const [newCategory, setNewCategory] = useState("");
   const [title, setTitle] = useState("");
@@ -40,7 +42,7 @@ export default function ExpenseForm({ projectId, members, categories, onCreated,
     e.preventDefault();
     setError("");
     if (participantIds.length === 0) {
-      setError("Selecciona al menos una persona en 'Para'.");
+      setError(t("ledger.forWhomError"));
       return;
     }
     setBusy(true);
@@ -62,7 +64,7 @@ export default function ExpenseForm({ projectId, members, categories, onCreated,
       reset();
       onCreated();
     } catch (err) {
-      setError(err.message);
+      setError(tError(err));
     } finally {
       setBusy(false);
     }
@@ -70,11 +72,11 @@ export default function ExpenseForm({ projectId, members, categories, onCreated,
 
   return (
     <form onSubmit={submit} className="panel p-5 space-y-4 border-neon-green/30">
-      <h3 className="font-display uppercase tracking-widest text-neon-green text-sm">Nuevo gasto</h3>
+      <h3 className="font-display uppercase tracking-widest text-neon-green text-sm">{t("ledger.newExpense")}</h3>
 
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
-          <label className="label">Categoria</label>
+          <label className="label">{t("ledger.category")}</label>
           <select
             className="field"
             value={newCategory ? "" : categoryId}
@@ -92,25 +94,25 @@ export default function ExpenseForm({ projectId, members, categories, onCreated,
           </select>
           <input
             className="field mt-2"
-            placeholder="...o crear categoria nueva"
+            placeholder={t("ledger.newCategoryPlaceholder")}
             value={newCategory}
             onChange={(e) => setNewCategory(e.target.value)}
           />
         </div>
 
         <div>
-          <label className="label">Titulo</label>
+          <label className="label">{t("ledger.title")}</label>
           <input
             className="field"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ej: Mouse, Jamon, Queso"
+            placeholder={t("ledger.titlePlaceholder")}
             required
           />
         </div>
 
         <div>
-          <label className="label">Importe</label>
+          <label className="label">{t("ledger.amount")}</label>
           <div className="flex gap-2">
             <select className="field w-32" value={currency} onChange={(e) => setCurrency(e.target.value)}>
               {CURRENCIES.map((c) => (
@@ -133,7 +135,7 @@ export default function ExpenseForm({ projectId, members, categories, onCreated,
         </div>
 
         <div>
-          <label className="label">Pagado por</label>
+          <label className="label">{t("ledger.paidBy")}</label>
           <select className="field" value={paidBy} onChange={(e) => setPaidBy(e.target.value)}>
             {members.map((m) => (
               <option key={m.id} value={m.id}>
@@ -144,13 +146,13 @@ export default function ExpenseForm({ projectId, members, categories, onCreated,
         </div>
 
         <div>
-          <label className="label">Fecha</label>
+          <label className="label">{t("ledger.date")}</label>
           <input type="date" className="field" value={date} onChange={(e) => setDate(e.target.value)} required />
         </div>
       </div>
 
       <div>
-        <label className="label">Para</label>
+        <label className="label">{t("ledger.forWhom")}</label>
         <div className="flex flex-wrap gap-2">
           {members.map((m) => {
             const checked = participantIds.includes(m.id);
@@ -181,7 +183,7 @@ export default function ExpenseForm({ projectId, members, categories, onCreated,
 
       <div className="flex gap-3 pt-2">
         <button type="submit" disabled={busy} className="btn-primary">
-          {busy ? "Guardando..." : "Anadir Gasto"}
+          {busy ? t("common.saving") : t("ledger.addExpense")}
         </button>
         <button
           type="button"
@@ -191,7 +193,7 @@ export default function ExpenseForm({ projectId, members, categories, onCreated,
             onCancel();
           }}
         >
-          Cancelar
+          {t("common.cancel")}
         </button>
       </div>
     </form>

@@ -2,24 +2,29 @@ const jwt = require("jsonwebtoken");
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 const COOKIE_NAME = "loot_ledger_token";
-const TOKEN_TTL = "7d";
+const REMEMBER_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 dias
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 1 dia
 
-function signToken(user) {
+function signToken(user, ttlMs) {
   return jwt.sign(
     { id: user.id, username: user.username, role: user.role },
     JWT_SECRET,
-    { expiresIn: TOKEN_TTL }
+    { expiresIn: Math.floor(ttlMs / 1000) }
   );
 }
 
-function setAuthCookie(res, user) {
-  const token = signToken(user);
-  res.cookie(COOKIE_NAME, token, {
+function setAuthCookie(res, user, remember) {
+  const ttlMs = remember ? REMEMBER_TTL_MS : SESSION_TTL_MS;
+  const token = signToken(user, ttlMs);
+  const cookieOpts = {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production" && process.env.COOKIE_SECURE !== "false",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  };
+  // Sin "recordarme" se emite una cookie de sesion (sin maxAge): el navegador
+  // la descarta al cerrarse, aunque el JWT igual expira solo a las 24hs.
+  if (remember) cookieOpts.maxAge = ttlMs;
+  res.cookie(COOKIE_NAME, token, cookieOpts);
 }
 
 function clearAuthCookie(res) {

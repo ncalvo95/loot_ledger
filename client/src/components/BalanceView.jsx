@@ -1,10 +1,13 @@
 import React from "react";
+import { useLanguage } from "../i18n/LanguageContext.jsx";
 
 const CURRENCY_SYMBOL = { EUR: "€", USD: "$", ARS: "AR$" };
 
 export default function BalanceView({ balances }) {
+  const { t } = useLanguage();
+
   if (balances.length === 0) {
-    return <p className="text-slate-500 text-sm py-8 text-center">Todavia no hay gastos para calcular el loot.</p>;
+    return <p className="text-slate-500 text-sm py-8 text-center">{t("loot.empty")}</p>;
   }
 
   return (
@@ -32,7 +35,7 @@ export default function BalanceView({ balances }) {
                       zero ? "text-slate-400" : positive ? "text-neon-green" : "text-neon-red"
                     }`}
                   >
-                    {zero ? "en paz" : `${positive ? "+" : ""}${b.net.toFixed(2)}`}
+                    {zero ? t("loot.evenSteven") : `${positive ? "+" : ""}${b.net.toFixed(2)}`}
                   </span>
                 </div>
               );
@@ -42,20 +45,20 @@ export default function BalanceView({ balances }) {
           {group.transactions.length > 0 && (
             <div className="panel p-4">
               <p className="text-xs font-display uppercase tracking-widest text-slate-400 mb-3">
-                Quien le debe a quien
+                {t("loot.whoOwesWhom")}
               </p>
               <ul className="space-y-2">
-                {group.transactions.map((t, idx) => (
+                {group.transactions.map((tx, idx) => (
                   <li
                     key={idx}
                     className="flex items-center justify-between text-sm bg-ink-800/60 rounded-lg px-3 py-2"
                   >
                     <span>
-                      <span className="text-neon-red">{t.fromUsername}</span>
-                      <span className="text-slate-500"> debe a </span>
-                      <span className="text-neon-green">{t.toUsername}</span>
+                      <span className="text-neon-red">{tx.fromUsername}</span>
+                      <span className="text-slate-500"> {t("loot.owes")} </span>
+                      <span className="text-neon-green">{tx.toUsername}</span>
                     </span>
-                    <span className="font-mono text-neon-gold">{t.amount.toFixed(2)}</span>
+                    <span className="font-mono text-neon-gold">{tx.amount.toFixed(2)}</span>
                   </li>
                 ))}
               </ul>

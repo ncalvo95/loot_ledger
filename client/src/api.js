@@ -8,7 +8,10 @@ async function request(method, url, body) {
   const isJson = res.headers.get("content-type")?.includes("application/json");
   const data = isJson ? await res.json() : null;
   if (!res.ok) {
-    throw new Error((data && data.error) || `Error ${res.status}`);
+    const err = new Error((data && data.error) || `Error ${res.status}`);
+    if (data && data.code) err.code = data.code;
+    if (data && data.status) err.status = data.status;
+    throw err;
   }
   return data;
 }

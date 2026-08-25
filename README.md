@@ -103,14 +103,20 @@ Ajusta `User=` y las rutas dentro de `loot-ledger.service` si tu usuario o carpe
 
 ## Modelo funcional
 
-- **Usuarios**: alta libre (usuario 4-10 caracteres, solo letras/numeros/`.`/`-`/`_`; contrasena 6-16 con las mismas reglas de caracteres).
-- **Proyectos**: cualquier usuario puede crear un proyecto propio. El creador es el administrador de ese proyecto y puede:
-  - Agregar directamente a otro usuario existente.
-  - U otorgarle visibilidad (invitarlo), quedando pendiente hasta que ese usuario decida unirse desde su Dashboard.
+- **Usuarios**: alta con aprobacion (usuario 4-10 caracteres, solo letras/numeros/`.`/`-`/`_`; contrasena 6-16 con las mismas reglas de caracteres). Toda cuenta nueva queda en estado "pendiente" hasta que el `administrator` global la aprueba o rechaza (individual o masivamente) desde el Panel — asi se evita que se generen cuentas duplicadas sin control. El `administrator` tambien puede crear usuarios directamente (sin pasar por aprobacion), resetearles la contrasena o renombrarlos (el nombre de usuario es solo un dato de display: internamente todo se referencia por id, asi que renombrar no afecta gastos ni balances).
+- **Contrasenas**: cada usuario puede cambiar su propia contrasena (pidiendo la actual). No puede cambiar su propio nombre de usuario — eso es exclusivo del `administrator`.
+- **Olvide mi contrasena**: el usuario puede pedir un restablecimiento desde el login; queda una solicitud visible para el `administrator` en el Panel, quien le define una contrasena nueva. Limitado a una solicitud cada 24hs por usuario para evitar spam.
+- **Recordarme**: al iniciar sesion se puede tildar "mantener sesion iniciada" para que dure 30 dias en vez de cerrarse al salir del navegador.
+- **Proyectos y roles**: cualquier usuario puede crear un proyecto propio, quedando como su **Propietario**. El Propietario puede:
+  - Agregar directamente a otro usuario existente, o darle visibilidad (invitarlo) quedando pendiente hasta que acepte desde su Dashboard.
+  - Quitar miembros del proyecto.
+  - Otorgar o quitar el rol de **Admin** del proyecto a otros miembros (los admins de proyecto tienen los mismos permisos de gestion que el Propietario).
+  - Transferir la propiedad del proyecto **solo la puede hacer el `administrator` global**, que ademas ve todos los proyectos del servidor (aunque no sea miembro) y puede cambiar el rol de cualquier usuario en cualquier proyecto.
 - **Bajas de usuario**: al eliminar un usuario (por el `administrator` global) o al quitarlo de un proyecto, sus gastos y su lugar en la triangulacion **se conservan** (no rompe los balances). Si vuelve a registrarse con el mismo nombre de usuario, la cuenta se reactiva sobre el mismo registro (sin duplicados) y retoma todo su historial.
 - **Ledger** (por proyecto): alta de gastos con categoria (existente o nueva; "Reembolso" viene creada por defecto para cancelar deudas entre usuarios), titulo, moneda + importe, quien pago, fecha, y a quienes se les reparte el gasto (division igualitaria entre los seleccionados).
 - **Loot** (por proyecto): balance neto de cada integrante por moneda, y el detalle simplificado de quien le debe a quien.
 - **Exportacion a Excel**: desde el Ledger, boton para exportar el historico completo, por mes o por ano — genera un `.xlsx` con tablas de Excel (gastos, balances y deudas).
+- **Idioma**: espanol / ingles, con un toggle en la barra superior (se guarda en el navegador de cada usuario).
 
 ## Backup
 

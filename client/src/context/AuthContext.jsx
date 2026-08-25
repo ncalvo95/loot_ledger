@@ -22,15 +22,16 @@ export function AuthProvider({ children }) {
     refresh();
   }, [refresh]);
 
-  const login = async (username, password) => {
-    const data = await api.post("/auth/login", { username, password });
+  const login = async (username, password, remember) => {
+    const data = await api.post("/auth/login", { username, password, remember: !!remember });
     setUser(data.user);
     return data.user;
   };
 
+  // Devuelve { status: 'pending' } o { status: 'active', user, reactivated }
   const register = async (username, password) => {
     const data = await api.post("/auth/register", { username, password });
-    setUser(data.user);
+    if (data.user) setUser(data.user);
     return data;
   };
 
@@ -39,8 +40,18 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const changePassword = async (currentPassword, newPassword) => {
+    await api.post("/auth/change-password", { currentPassword, newPassword });
+  };
+
+  const forgotPassword = async (username) => {
+    await api.post("/auth/forgot-password", { username });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refresh }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, register, logout, refresh, changePassword, forgotPassword }}
+    >
       {children}
     </AuthContext.Provider>
   );

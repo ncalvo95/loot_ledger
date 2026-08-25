@@ -13,13 +13,85 @@ const db = new Database(DB_PATH);
 db.pragma("journal_mode = WAL");
 db.pragma("foreign_keys = ON");
 
+function tableExists(name) {
+  return !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name);
+}
+
+// Migra instalaciones existentes: users.status pasa a admitir 'pending'/'rejected'
+// (antes solo 'active'/'removed'), preservando todas las filas y sus ids.
+function migrateUsersStatusEnum() {
+  if (!tableExists("users")) return;
+  const row = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").get();
+  if (row.sql.includes("'pending'")) return;
+
+  // PRAGMA foreign_keys es un no-op dentro de una transaccion, hay que
+  // desactivarlo antes de abrir el BEGIN/COMMIT que envuelve db.transaction().
+  //
+  // Importante: NO renombramos la tabla "users" original. Un ALTER TABLE RENAME
+  // hace que SQLite reescriba automaticamente las referencias FK de otras tablas
+  // (projects.owner_id, project_members.user_id, etc.) para que sigan al nuevo
+  // nombre, dejandolas apuntando a una tabla temporal que despues se borra. En
+  // cambio creamos la tabla nueva con otro nombre, copiamos los datos, borramos
+  // la vieja y recien ahi renombramos la nueva a "users": como las otras tablas
+  // nunca dejaron de decir "REFERENCES users(id)", vuelven a resolver bien solas.
+  db.pragma("foreign_keys = OFF");
+  const migrate = db.transaction(() => {
+    db.exec(`
+      CREATE TABLE users_new_v2 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin','user')),
+        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('active','pending','rejected','removed')),
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+    db.exec(`
+      INSERT INTO users_new_v2 (id, username, password_hash, role, status, created_at, updated_at)
+      SELECT id, username, password_hash, role, status, created_at, updated_at FROM users
+    `);
+    db.exec("DROP TABLE users");
+    db.exec("ALTER TABLE users_new_v2 RENAME TO users");
+    db.exec(
+      "UPDATE sqlite_sequence SET seq = (SELECT COALESCE(MAX(id),0) FROM users) WHERE name = 'users'"
+    );
+    const violations = db.pragma("foreign_key_check");
+    if (violations.length) {
+      throw new Error("Migracion de users dejo referencias FK rotas: " + JSON.stringify(violations));
+    }
+  });
+  migrate();
+  db.pragma("foreign_keys = ON");
+}
+
+// Migra instalaciones existentes: agrega project_members.role (owner/admin/member),
+// reconstruyendo el rol de 'owner' a partir de projects.owner_id.
+function migrateProjectMembersRole() {
+  if (!tableExists("project_members")) return;
+  const cols = db.prepare("PRAGMA table_info(project_members)").all();
+  if (cols.some((c) => c.name === "role")) return;
+
+  const migrate = db.transaction(() => {
+    db.exec("ALTER TABLE project_members ADD COLUMN role TEXT NOT NULL DEFAULT 'member'");
+    db.exec(`
+      UPDATE project_members SET role = 'owner'
+      WHERE user_id = (SELECT owner_id FROM projects WHERE projects.id = project_members.project_id)
+    `);
+  });
+  migrate();
+}
+
+migrateUsersStatusEnum();
+migrateProjectMembersRole();
+
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin','user')),
-  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','removed')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('active','pending','rejected','removed')),
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -36,6 +108,7 @@ CREATE TABLE IF NOT EXISTS project_members (
   project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   user_id INTEGER NOT NULL REFERENCES users(id),
   status TEXT NOT NULL DEFAULT 'member' CHECK (status IN ('member','invited','removed')),
+  role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('owner','admin','member')),
   added_by INTEGER REFERENCES users(id),
   joined_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(project_id, user_id)
@@ -71,10 +144,20 @@ CREATE TABLE IF NOT EXISTS expense_splits (
   UNIQUE(expense_id, user_id)
 );
 
+CREATE TABLE IF NOT EXISTS password_reset_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','resolved')),
+  requested_at TEXT NOT NULL DEFAULT (datetime('now')),
+  resolved_at TEXT,
+  resolved_by INTEGER REFERENCES users(id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_expenses_project ON expenses(project_id);
 CREATE INDEX IF NOT EXISTS idx_expense_splits_expense ON expense_splits(expense_id);
 CREATE INDEX IF NOT EXISTS idx_project_members_project ON project_members(project_id);
 CREATE INDEX IF NOT EXISTS idx_project_members_user ON project_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_password_reset_requests_user ON password_reset_requests(user_id);
 `);
 
 function seedAdmin() {

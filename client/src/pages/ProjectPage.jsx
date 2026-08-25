@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useLanguage } from "../i18n/LanguageContext.jsx";
 import ExpenseForm from "../components/ExpenseForm.jsx";
 import ExpenseList from "../components/ExpenseList.jsx";
 import BalanceView from "../components/BalanceView.jsx";
@@ -9,15 +10,10 @@ import MembersPanel from "../components/MembersPanel.jsx";
 import ExportPanel from "../components/ExportPanel.jsx";
 import { Loading } from "../components/ProtectedRoute.jsx";
 
-const TABS = [
-  { key: "ledger", label: "Ledger" },
-  { key: "loot", label: "Loot" },
-  { key: "team", label: "Equipo" },
-];
-
 export default function ProjectPage() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { t, tError } = useLanguage();
   const [detail, setDetail] = useState(null);
   const [expenses, setExpenses] = useState([]);
   const [balances, setBalances] = useState([]);
@@ -26,6 +22,12 @@ export default function ProjectPage() {
   const [filterMonth, setFilterMonth] = useState("");
   const [filterYear, setFilterYear] = useState("");
   const [error, setError] = useState("");
+
+  const TABS = [
+    { key: "ledger", label: t("project.ledger") },
+    { key: "loot", label: t("project.loot") },
+    { key: "team", label: t("project.team") },
+  ];
 
   const loadDetail = async () => {
     const data = await api.get(`/projects/${id}`);
@@ -47,13 +49,13 @@ export default function ProjectPage() {
 
   useEffect(() => {
     setError("");
-    loadDetail().catch((err) => setError(err.message));
+    loadDetail().catch((err) => setError(tError(err)));
   }, [id]);
 
   useEffect(() => {
     if (!detail) return;
-    loadExpenses().catch((err) => setError(err.message));
-    loadBalances().catch((err) => setError(err.message));
+    loadExpenses().catch((err) => setError(tError(err)));
+    loadBalances().catch((err) => setError(tError(err)));
   }, [detail, filterMonth, filterYear]);
 
   if (error) {
@@ -61,7 +63,7 @@ export default function ProjectPage() {
       <div className="max-w-3xl mx-auto px-4 py-16 text-center">
         <p className="text-neon-red">{error}</p>
         <Link to="/" className="btn-secondary inline-flex mt-4">
-          Volver
+          {t("common.back")}
         </Link>
       </div>
     );
@@ -81,22 +83,22 @@ export default function ProjectPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <Link to="/" className="text-xs text-slate-500 hover:text-neon-cyan">
-            ← Dashboard
+            ← {t("project.dashboard")}
           </Link>
           <h1 className="title-glow text-3xl mt-1">{detail.project.name}</h1>
         </div>
         <nav className="flex gap-2">
-          {TABS.map((t) => (
+          {TABS.map((tabItem) => (
             <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
+              key={tabItem.key}
+              onClick={() => setTab(tabItem.key)}
               className={`btn ${
-                tab === t.key
+                tab === tabItem.key
                   ? "bg-neon-cyan/15 text-neon-cyan border border-neon-cyan/60 shadow-neon"
                   : "bg-ink-800 text-slate-400 border border-ink-600 hover:text-slate-100"
               }`}
             >
-              {t.label}
+              {tabItem.label}
             </button>
           ))}
         </nav>
@@ -110,7 +112,7 @@ export default function ProjectPage() {
             <div className="flex items-center gap-2">
               <input
                 type="number"
-                placeholder="Mes (1-12)"
+                placeholder={t("ledger.monthPlaceholder")}
                 className="field !w-32 !py-1.5"
                 value={filterMonth}
                 onChange={(e) => setFilterMonth(e.target.value)}
@@ -119,7 +121,7 @@ export default function ProjectPage() {
               />
               <input
                 type="number"
-                placeholder="Ano"
+                placeholder={t("ledger.yearPlaceholder")}
                 className="field !w-24 !py-1.5"
                 value={filterYear}
                 onChange={(e) => setFilterYear(e.target.value)}
@@ -132,13 +134,13 @@ export default function ProjectPage() {
                     setFilterYear("");
                   }}
                 >
-                  Limpiar
+                  {t("ledger.clearFilter")}
                 </button>
               )}
             </div>
             {!showForm && (
               <button className="btn-primary" onClick={() => setShowForm(true)}>
-                + Anadir Gasto
+                + {t("ledger.addExpense")}
               </button>
             )}
           </div>
@@ -159,7 +161,7 @@ export default function ProjectPage() {
           <ExpenseList
             projectId={id}
             expenses={expenses}
-            canManage={detail.isOwner}
+            canManage={detail.canManage}
             currentUserId={user.id}
             onChanged={refreshAll}
           />
@@ -172,7 +174,9 @@ export default function ProjectPage() {
         <MembersPanel
           projectId={id}
           members={detail.members}
-          isOwner={detail.isOwner}
+          isOwner={detail.myRole === "owner"}
+          canManage={detail.canManage}
+          isGlobalAdmin={detail.isGlobalAdmin}
           onChanged={loadDetail}
         />
       )}

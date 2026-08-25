@@ -1,25 +1,25 @@
 import React, { useState } from "react";
 import { downloadExport } from "../api.js";
-
-const MONTHS = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
-];
+import { useLanguage } from "../i18n/LanguageContext.jsx";
 
 export default function ExportPanel({ projectId }) {
+  const { t } = useLanguage();
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
+  const months = t("ledger.months");
 
   return (
     <div className="panel p-4 flex flex-wrap items-center gap-3">
-      <span className="font-display uppercase tracking-widest text-xs text-slate-400 mr-1">Exportar a Excel</span>
+      <span className="font-display uppercase tracking-widest text-xs text-slate-400 mr-1">
+        {t("ledger.exportTitle")}
+      </span>
       <button className="btn-secondary !px-3 !py-1.5" onClick={() => downloadExport(projectId, { scope: "all" })}>
-        Historico completo
+        {t("ledger.exportAll")}
       </button>
       <div className="flex items-center gap-2">
         <select className="field !w-auto !py-1.5" value={month} onChange={(e) => setMonth(e.target.value)}>
-          {MONTHS.map((m, idx) => (
+          {months.map((m, idx) => (
             <option key={m} value={idx + 1}>
               {m}
             </option>
@@ -35,13 +35,13 @@ export default function ExportPanel({ projectId }) {
           className="btn-secondary !px-3 !py-1.5"
           onClick={() => downloadExport(projectId, { scope: "month", month, year })}
         >
-          Por mes
+          {t("ledger.exportByMonth")}
         </button>
         <button
           className="btn-secondary !px-3 !py-1.5"
           onClick={() => downloadExport(projectId, { scope: "year", year })}
         >
-          Por ano
+          {t("ledger.exportByYear")}
         </button>
       </div>
     </div>

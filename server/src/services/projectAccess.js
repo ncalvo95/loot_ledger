@@ -6,12 +6,21 @@ function getMembership(projectId, userId) {
     .get(projectId, userId);
 }
 
+function getMemberRole(projectId, userId) {
+  const m = getMembership(projectId, userId);
+  return m ? m.role : null;
+}
+
 function isProjectOwner(project, userId) {
   return project.owner_id === userId;
 }
 
+// Duenos y administradores de proyecto (o el administrador global) pueden
+// gestionar miembros, categorias y gastos ajenos.
 function canManageProject(project, req) {
-  return req.user.role === "admin" || isProjectOwner(project, req.user.id);
+  if (req.user.role === "admin") return true;
+  const role = getMemberRole(project.id, req.user.id);
+  return role === "owner" || role === "admin";
 }
 
 function loadProject(req, res, next) {
@@ -46,6 +55,7 @@ function getActiveMembers(projectId) {
 
 module.exports = {
   getMembership,
+  getMemberRole,
   isProjectOwner,
   canManageProject,
   loadProject,

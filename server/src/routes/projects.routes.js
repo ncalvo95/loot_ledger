@@ -3,6 +3,7 @@ const db = require("../db");
 const { requireAuth } = require("../auth");
 const {
   getMembership,
+  getMemberRole,
   isProjectOwner,
   canManageProject,
   loadProject,
@@ -14,17 +15,36 @@ router.use(requireAuth);
 
 router.get("/", (req, res) => {
   const userId = req.user.id;
-  const active = db
-    .prepare(
-      `SELECT p.*, u.username AS owner_username,
-        (SELECT COUNT(*) FROM project_members pm2 WHERE pm2.project_id = p.id AND pm2.status = 'member') AS member_count
-       FROM projects p
-       JOIN project_members pm ON pm.project_id = p.id
-       JOIN users u ON u.id = p.owner_id
-       WHERE pm.user_id = ? AND pm.status = 'member'
-       ORDER BY p.created_at DESC`
-    )
-    .all(userId);
+
+  // El administrador global ve todos los proyectos del servidor, sea o no miembro.
+  const active =
+    req.user.role === "admin"
+      ? db
+          .prepare(
+            `SELECT p.*, u.username AS owner_username,
+              (SELECT COUNT(*) FROM project_members pm2 WHERE pm2.project_id = p.id AND pm2.status = 'member') AS member_count,
+              EXISTS(
+                SELECT 1 FROM project_members pm3
+                WHERE pm3.project_id = p.id AND pm3.user_id = ? AND pm3.status = 'member'
+              ) AS is_member
+             FROM projects p
+             JOIN users u ON u.id = p.owner_id
+             ORDER BY p.created_at DESC`
+          )
+          .all(userId)
+      : db
+          .prepare(
+            `SELECT p.*, u.username AS owner_username,
+              (SELECT COUNT(*) FROM project_members pm2 WHERE pm2.project_id = p.id AND pm2.status = 'member') AS member_count,
+              1 AS is_member
+             FROM projects p
+             JOIN project_members pm ON pm.project_id = p.id
+             JOIN users u ON u.id = p.owner_id
+             WHERE pm.user_id = ? AND pm.status = 'member'
+             ORDER BY p.created_at DESC`
+          )
+          .all(userId);
+
   const invited = db
     .prepare(
       `SELECT p.*, u.username AS owner_username
@@ -48,7 +68,7 @@ router.post("/", (req, res) => {
       .run(name.trim(), req.user.id);
     const projectId = info.lastInsertRowid;
     db.prepare(
-      "INSERT INTO project_members (project_id, user_id, status, added_by) VALUES (?, ?, 'member', ?)"
+      "INSERT INTO project_members (project_id, user_id, status, role, added_by) VALUES (?, ?, 'member', 'owner', ?)"
     ).run(projectId, req.user.id, req.user.id);
     db.prepare(
       "INSERT INTO categories (project_id, name, is_default) VALUES (?, 'Reembolso', 1)"
@@ -64,7 +84,7 @@ router.post("/", (req, res) => {
 router.get("/:id", loadProject, requireProjectAccess, (req, res) => {
   const members = db
     .prepare(
-      `SELECT pm.user_id, pm.status, u.username, u.status AS account_status
+      `SELECT pm.user_id, pm.status, pm.role, u.username, u.status AS account_status
        FROM project_members pm
        JOIN users u ON u.id = pm.user_id
        WHERE pm.project_id = ?
@@ -74,11 +94,15 @@ router.get("/:id", loadProject, requireProjectAccess, (req, res) => {
   const categories = db
     .prepare("SELECT * FROM categories WHERE project_id = ? ORDER BY is_default DESC, name ASC")
     .all(req.project.id);
+  const myRole = getMemberRole(req.project.id, req.user.id);
   res.json({
     project: req.project,
     members,
     categories,
     isOwner: isProjectOwner(req.project, req.user.id) || req.user.role === "admin",
+    canManage: canManageProject(req.project, req),
+    myRole,
+    isGlobalAdmin: req.user.role === "admin",
   });
 });
 
@@ -98,9 +122,13 @@ router.post("/:id/members", loadProject, (req, res) => {
     if (existing.status === "member") {
       return res.status(409).json({ error: "Ese usuario ya es miembro del proyecto." });
     }
+    // Si volvia a sumarse alguien que tenia el rol 'owner' de una etapa anterior
+    // pero ya no es el dueno actual del proyecto (projects.owner_id cambio
+    // mientras estaba afuera), lo bajamos a 'admin' para no tener dos owners.
+    const role = existing.role === "owner" && user.id !== req.project.owner_id ? "admin" : existing.role;
     db.prepare(
-      "UPDATE project_members SET status = ?, added_by = ?, joined_at = datetime('now') WHERE id = ?"
-    ).run(targetStatus, req.user.id, existing.id);
+      "UPDATE project_members SET status = ?, role = ?, added_by = ?, joined_at = datetime('now') WHERE id = ?"
+    ).run(targetStatus, role, req.user.id, existing.id);
   } else {
     db.prepare(
       "INSERT INTO project_members (project_id, user_id, status, added_by) VALUES (?, ?, ?, ?)"
@@ -139,6 +167,55 @@ router.post("/:id/members/:userId/remove", loadProject, (req, res) => {
   if (!membership) return res.status(404).json({ error: "Ese usuario no pertenece al proyecto." });
   // Se mantiene el registro en estado 'removed' para no romper la triangulacion de gastos historicos.
   db.prepare("UPDATE project_members SET status = 'removed' WHERE id = ?").run(membership.id);
+  res.json({ ok: true });
+});
+
+router.post("/:id/members/:userId/role", loadProject, (req, res) => {
+  const { role } = req.body || {};
+  if (!["owner", "admin", "member"].includes(role)) {
+    return res.status(400).json({ error: "Rol invalido." });
+  }
+
+  const targetUserId = Number(req.params.userId);
+  const membership = getMembership(req.project.id, targetUserId);
+  if (!membership || membership.status === "removed") {
+    return res.status(404).json({ error: "Ese usuario no pertenece al proyecto." });
+  }
+
+  const requesterIsGlobalAdmin = req.user.role === "admin";
+  const requesterRole = getMemberRole(req.project.id, req.user.id);
+  const requesterIsOwner = requesterRole === "owner";
+
+  if (role === "owner") {
+    // Transferir la propiedad del proyecto: solo el administrador global puede hacerlo.
+    if (!requesterIsGlobalAdmin) {
+      return res.status(403).json({ error: "Solo el administrador global puede transferir la propiedad del proyecto." });
+    }
+    if (targetUserId === req.project.owner_id) {
+      return res.json({ ok: true });
+    }
+    const transfer = db.transaction(() => {
+      db.prepare("UPDATE project_members SET role = 'admin' WHERE project_id = ? AND role = 'owner'").run(
+        req.project.id
+      );
+      db.prepare("UPDATE project_members SET role = 'owner' WHERE id = ?").run(membership.id);
+      db.prepare("UPDATE projects SET owner_id = ? WHERE id = ?").run(targetUserId, req.project.id);
+    });
+    transfer();
+    return res.json({ ok: true });
+  }
+
+  // role === 'admin' | 'member': otorgar o quitar permisos de administrador del proyecto.
+  if (!requesterIsGlobalAdmin && !requesterIsOwner) {
+    return res.status(403).json({ error: "Solo el propietario del proyecto puede cambiar permisos de administrador." });
+  }
+  if (membership.role === "owner") {
+    return res.status(400).json({
+      error: "No se puede quitarle el rol al propietario sin transferir la propiedad primero.",
+    });
+  }
+
+  db.prepare("UPDATE project_members SET role = ? WHERE id = ?").run(role, membership.id);
   res.json({ ok: true });
 });
 

@@ -1,17 +1,20 @@
 import React from "react";
 import { api } from "../api.js";
+import { useLanguage } from "../i18n/LanguageContext.jsx";
 
 const CURRENCY_SYMBOL = { EUR: "€", USD: "$", ARS: "AR$" };
 
 export default function ExpenseList({ projectId, expenses, canManage, currentUserId, onChanged }) {
+  const { t } = useLanguage();
+
   const remove = async (id) => {
-    if (!confirm("Eliminar este gasto? Esta accion no se puede deshacer.")) return;
+    if (!confirm(t("ledger.confirmDelete"))) return;
     await api.delete(`/projects/${projectId}/expenses/${id}`);
     onChanged();
   };
 
   if (expenses.length === 0) {
-    return <p className="text-slate-500 text-sm py-8 text-center">Sin gastos registrados todavia. ¡A cargar loot!</p>;
+    return <p className="text-slate-500 text-sm py-8 text-center">{t("ledger.empty")}</p>;
   }
 
   return (
@@ -40,8 +43,8 @@ export default function ExpenseList({ projectId, expenses, canManage, currentUse
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                {e.date} · Pago <span className="text-slate-300">{e.paidByUsername}</span> · Para{" "}
-                {e.participants.map((p) => p.username).join(", ")}
+                {e.date} · {t("ledger.paidByLine")} <span className="text-slate-300">{e.paidByUsername}</span> ·{" "}
+                {t("ledger.forLine")} {e.participants.map((p) => p.username).join(", ")}
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -50,7 +53,7 @@ export default function ExpenseList({ projectId, expenses, canManage, currentUse
               </span>
               {canDelete && (
                 <button onClick={() => remove(e.id)} className="btn-danger !px-2 !py-1 text-[10px]">
-                  Borrar
+                  {t("common.delete")}
                 </button>
               )}
             </div>
