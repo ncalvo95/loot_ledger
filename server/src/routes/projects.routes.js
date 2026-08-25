@@ -111,7 +111,7 @@ router.post("/:id/members", loadProject, (req, res) => {
     return res.status(403).json({ error: "Solo el administrador del proyecto puede agregar miembros." });
   }
   const { username, mode } = req.body || {};
-  if (!username) return res.status(400).json({ error: "Indica el nombre de usuario." });
+  if (!username) return res.status(400).json({ error: "Indicá el nombre de usuario." });
   const targetStatus = mode === "invite" ? "invited" : "member";
 
   const user = db.prepare("SELECT * FROM users WHERE username = ? AND status = 'active'").get(username);
@@ -122,8 +122,8 @@ router.post("/:id/members", loadProject, (req, res) => {
     if (existing.status === "member") {
       return res.status(409).json({ error: "Ese usuario ya es miembro del proyecto." });
     }
-    // Si volvia a sumarse alguien que tenia el rol 'owner' de una etapa anterior
-    // pero ya no es el dueno actual del proyecto (projects.owner_id cambio
+    // Si volvía a sumarse alguien que tenía el rol 'owner' de una etapa anterior
+    // pero ya no es el dueño actual del proyecto (projects.owner_id cambió
     // mientras estaba afuera), lo bajamos a 'admin' para no tener dos owners.
     const role = existing.role === "owner" && user.id !== req.project.owner_id ? "admin" : existing.role;
     db.prepare(
@@ -140,7 +140,7 @@ router.post("/:id/members", loadProject, (req, res) => {
 router.post("/:id/accept", loadProject, (req, res) => {
   const membership = getMembership(req.project.id, req.user.id);
   if (!membership || membership.status !== "invited") {
-    return res.status(400).json({ error: "No tenes una invitacion pendiente para este proyecto." });
+    return res.status(400).json({ error: "No tenés una invitación pendiente para este proyecto." });
   }
   db.prepare("UPDATE project_members SET status = 'member' WHERE id = ?").run(membership.id);
   res.json({ ok: true });
@@ -149,7 +149,7 @@ router.post("/:id/accept", loadProject, (req, res) => {
 router.post("/:id/decline", loadProject, (req, res) => {
   const membership = getMembership(req.project.id, req.user.id);
   if (!membership || membership.status !== "invited") {
-    return res.status(400).json({ error: "No tenes una invitacion pendiente para este proyecto." });
+    return res.status(400).json({ error: "No tenés una invitación pendiente para este proyecto." });
   }
   db.prepare("UPDATE project_members SET status = 'removed' WHERE id = ?").run(membership.id);
   res.json({ ok: true });
@@ -161,11 +161,11 @@ router.post("/:id/members/:userId/remove", loadProject, (req, res) => {
   }
   const targetUserId = Number(req.params.userId);
   if (targetUserId === req.project.owner_id) {
-    return res.status(400).json({ error: "No se puede quitar al dueno del proyecto." });
+    return res.status(400).json({ error: "No se puede quitar al dueño del proyecto." });
   }
   const membership = getMembership(req.project.id, targetUserId);
   if (!membership) return res.status(404).json({ error: "Ese usuario no pertenece al proyecto." });
-  // Se mantiene el registro en estado 'removed' para no romper la triangulacion de gastos historicos.
+  // Se mantiene el registro en estado 'removed' para no romper la triangulación de gastos históricos.
   db.prepare("UPDATE project_members SET status = 'removed' WHERE id = ?").run(membership.id);
   res.json({ ok: true });
 });
@@ -173,7 +173,7 @@ router.post("/:id/members/:userId/remove", loadProject, (req, res) => {
 router.post("/:id/members/:userId/role", loadProject, (req, res) => {
   const { role } = req.body || {};
   if (!["owner", "admin", "member"].includes(role)) {
-    return res.status(400).json({ error: "Rol invalido." });
+    return res.status(400).json({ error: "Rol inválido." });
   }
 
   const targetUserId = Number(req.params.userId);

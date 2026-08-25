@@ -22,7 +22,7 @@ router.get("/users", (req, res) => {
   res.json({ users: users.map(publicUser) });
 });
 
-// El administrador crea una cuenta directamente, sin pasar por aprobacion.
+// El administrador crea una cuenta directamente, sin pasar por aprobación.
 router.post("/users", (req, res) => {
   const { username, password } = req.body || {};
   const usernameError = validateUsername(username);
@@ -35,7 +35,7 @@ router.post("/users", (req, res) => {
 
   if (existing) {
     if (existing.status === "active" || existing.status === "pending") {
-      return res.status(409).json({ error: "Ese nombre de usuario ya esta en uso." });
+      return res.status(409).json({ error: "Ese nombre de usuario ya está en uso." });
     }
     db.prepare(
       "UPDATE users SET password_hash = ?, status = 'active', updated_at = datetime('now') WHERE id = ?"
@@ -60,9 +60,9 @@ router.post("/users/:id/rename", (req, res) => {
   if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
 
   const clash = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?").get(newUsername, user.id);
-  if (clash) return res.status(409).json({ error: "Ese nombre de usuario ya esta en uso." });
+  if (clash) return res.status(409).json({ error: "Ese nombre de usuario ya está en uso." });
 
-  // Renombrar es seguro para los calculos: expenses/expense_splits/project_members
+  // Renombrar es seguro para los cálculos: expenses/expense_splits/project_members
   // referencian usuarios por id, nunca por username.
   db.prepare("UPDATE users SET username = ?, updated_at = datetime('now') WHERE id = ?").run(
     newUsername,
@@ -91,7 +91,7 @@ router.post("/users/:id/remove", (req, res) => {
     return res.status(400).json({ error: "No se puede eliminar al administrador principal." });
   }
   if (user.id === req.user.id) {
-    return res.status(400).json({ error: "No podes eliminar tu propia cuenta desde el panel." });
+    return res.status(400).json({ error: "No podés eliminar tu propia cuenta desde el panel." });
   }
   db.prepare("UPDATE users SET status = 'removed', updated_at = datetime('now') WHERE id = ?").run(user.id);
   res.json({ ok: true });
@@ -115,7 +115,7 @@ function bulkUpdateStatus(ids, fromStatus, toStatus) {
 router.post("/users/approve", (req, res) => {
   const { ids } = req.body || {};
   if (!Array.isArray(ids) || ids.length === 0) {
-    return res.status(400).json({ error: "Indica al menos un usuario a aprobar." });
+    return res.status(400).json({ error: "Indicá al menos un usuario a aprobar." });
   }
   bulkUpdateStatus(ids, "pending", "active");
   res.json({ ok: true });
@@ -124,7 +124,7 @@ router.post("/users/approve", (req, res) => {
 router.post("/users/reject", (req, res) => {
   const { ids } = req.body || {};
   if (!Array.isArray(ids) || ids.length === 0) {
-    return res.status(400).json({ error: "Indica al menos un usuario a rechazar." });
+    return res.status(400).json({ error: "Indicá al menos un usuario a rechazar." });
   }
   bulkUpdateStatus(ids, "pending", "rejected");
   res.json({ ok: true });

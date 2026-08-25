@@ -16,8 +16,8 @@ router.get("/", (req, res) => {
 router.post("/", (req, res) => {
   const { name } = req.body || {};
   const trimmed = (name || "").trim();
-  if (!trimmed) return res.status(400).json({ error: "El nombre de la categoria es obligatorio." });
-  if (trimmed.length > 40) return res.status(400).json({ error: "El nombre de la categoria es demasiado largo." });
+  if (!trimmed) return res.status(400).json({ error: "El nombre de la categoría es obligatorio." });
+  if (trimmed.length > 40) return res.status(400).json({ error: "El nombre de la categoría es demasiado largo." });
 
   const existing = db
     .prepare("SELECT * FROM categories WHERE project_id = ? AND name = ?")

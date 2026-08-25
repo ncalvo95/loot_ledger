@@ -29,7 +29,7 @@ router.post("/register", (req, res) => {
         error:
           existing.status === "pending"
             ? "Ya existe una solicitud pendiente con ese nombre de usuario."
-            : "Ese nombre de usuario ya esta en uso.",
+            : "Ese nombre de usuario ya está en uso.",
         code: existing.status === "pending" ? "ALREADY_PENDING" : "USERNAME_TAKEN",
       });
     }
@@ -43,7 +43,7 @@ router.post("/register", (req, res) => {
       setAuthCookie(res, reactivated, false);
       return res.status(200).json({ user: publicUser(reactivated), status: "active", reactivated: true });
     }
-    // status === 'rejected': se reenvia como nueva solicitud pendiente de aprobacion.
+    // status === 'rejected': se reenvía como nueva solicitud pendiente de aprobación.
     db.prepare(
       "UPDATE users SET password_hash = ?, status = 'pending', updated_at = datetime('now') WHERE id = ?"
     ).run(hash, existing.id);
@@ -59,28 +59,28 @@ router.post("/register", (req, res) => {
 router.post("/login", (req, res) => {
   const { username, password, remember } = req.body || {};
   if (!username || !password) {
-    return res.status(400).json({ error: "Usuario y contrasena son obligatorios." });
+    return res.status(400).json({ error: "Usuario y contraseña son obligatorios." });
   }
   const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
-    return res.status(401).json({ error: "Credenciales invalidas.", code: "INVALID_CREDENTIALS" });
+    return res.status(401).json({ error: "Credenciales inválidas.", code: "INVALID_CREDENTIALS" });
   }
 
   if (user.status === "pending") {
     return res.status(403).json({
-      error: "Tu cuenta esta pendiente de aprobacion del administrador.",
+      error: "Tu cuenta está pendiente de aprobación del administrador.",
       code: "PENDING_APPROVAL",
     });
   }
   if (user.status === "rejected") {
     return res.status(403).json({
-      error: "Tu solicitud de cuenta fue rechazada. Contacta al administrador.",
+      error: "Tu solicitud de cuenta fue rechazada. Contactá al administrador.",
       code: "REJECTED",
     });
   }
   if (user.status === "removed") {
     return res.status(403).json({
-      error: "Esta cuenta fue eliminada. Podes volver a registrarte con el mismo usuario.",
+      error: "Esta cuenta fue eliminada. Podés volver a registrarte con el mismo usuario.",
       code: "REMOVED",
     });
   }
@@ -108,7 +108,7 @@ router.post("/change-password", requireAuth, (req, res) => {
   const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id);
   if (!user || user.status !== "active") return res.status(401).json({ error: "No autenticado." });
   if (!bcrypt.compareSync(currentPassword || "", user.password_hash)) {
-    return res.status(400).json({ error: "La contrasena actual no es correcta.", code: "WRONG_CURRENT_PASSWORD" });
+    return res.status(400).json({ error: "La contraseña actual no es correcta.", code: "WRONG_CURRENT_PASSWORD" });
   }
 
   const hash = bcrypt.hashSync(newPassword, 10);
@@ -118,7 +118,7 @@ router.post("/change-password", requireAuth, (req, res) => {
 
 router.post("/forgot-password", (req, res) => {
   const { username } = req.body || {};
-  if (!username) return res.status(400).json({ error: "Indica tu nombre de usuario." });
+  if (!username) return res.status(400).json({ error: "Indicá tu nombre de usuario." });
 
   const user = db.prepare("SELECT * FROM users WHERE username = ? AND status = 'active'").get(username);
   if (user) {
@@ -130,7 +130,7 @@ router.post("/forgot-password", (req, res) => {
       if (hoursSince < RESET_REQUEST_COOLDOWN_HOURS) {
         const hoursLeft = Math.ceil(RESET_REQUEST_COOLDOWN_HOURS - hoursSince);
         return res.status(429).json({
-          error: `Ya solicitaste un restablecimiento de contrasena. Volve a intentar en ${hoursLeft}hs.`,
+          error: `Ya solicitaste un restablecimiento de contraseña. Volvé a intentar en ${hoursLeft}hs.`,
           code: "RATE_LIMITED",
         });
       }
@@ -140,7 +140,7 @@ router.post("/forgot-password", (req, res) => {
     ).run(user.id);
   }
 
-  // Respuesta generica: no confirmamos si el usuario existe o no.
+  // Respuesta genérica: no confirmamos si el usuario existe o no.
   res.json({ ok: true });
 });
 

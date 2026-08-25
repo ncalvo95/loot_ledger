@@ -12,10 +12,10 @@ router.get("/", async (req, res) => {
   const { scope = "all", month, year } = req.query;
 
   if (scope === "month" && (!month || !year)) {
-    return res.status(400).json({ error: "Indica mes y ano para exportar por periodo." });
+    return res.status(400).json({ error: "Indicá mes y año para exportar por período." });
   }
   if (scope === "year" && !year) {
-    return res.status(400).json({ error: "Indica el ano para exportar." });
+    return res.status(400).json({ error: "Indicá el año para exportar." });
   }
 
   const filters = {};

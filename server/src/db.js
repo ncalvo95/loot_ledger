@@ -58,7 +58,7 @@ function migrateUsersStatusEnum() {
     );
     const violations = db.pragma("foreign_key_check");
     if (violations.length) {
-      throw new Error("Migracion de users dejo referencias FK rotas: " + JSON.stringify(violations));
+      throw new Error("Migración de users dejó referencias FK rotas: " + JSON.stringify(violations));
     }
   });
   migrate();

@@ -43,8 +43,8 @@ function buildExportWorkbook({ project, expenses, balances, filterLabel }) {
     style: { theme: "TableStyleMedium9", showRowStripes: true },
     columns: [
       { name: "Fecha" },
-      { name: "Titulo" },
-      { name: "Categoria" },
+      { name: "Título" },
+      { name: "Categoría" },
       { name: "Moneda" },
       { name: "Importe", filterButton: true },
       { name: "Pagado por" },
@@ -76,7 +76,7 @@ function buildExportWorkbook({ project, expenses, balances, filterLabel }) {
 
   const transactionsSheet = workbook.addWorksheet("Deudas");
   transactionsSheet.columns = [{ width: 20 }, { width: 20 }, { width: 12 }, { width: 14 }];
-  transactionsSheet.getCell("A1").value = `Quien le debe a quien - ${project.name}`;
+  transactionsSheet.getCell("A1").value = `Quién le debe a quién - ${project.name}`;
   transactionsSheet.getCell("A1").font = { bold: true, size: 14 };
 
   const txRows = [];
@@ -100,12 +100,12 @@ function buildExportWorkbook({ project, expenses, balances, filterLabel }) {
 
 function buildFilterLabel({ scope, month, year }) {
   if (scope === "month" && month && year) {
-    return `Periodo: ${MONTH_NAMES[Number(month) - 1] || month} ${year}`;
+    return `Período: ${MONTH_NAMES[Number(month) - 1] || month} ${year}`;
   }
   if (scope === "year" && year) {
-    return `Periodo: Ano ${year}`;
+    return `Período: Año ${year}`;
   }
-  return "Periodo: Historico completo";
+  return "Período: Histórico completo";
 }
 
 module.exports = { buildExportWorkbook, buildFilterLabel };

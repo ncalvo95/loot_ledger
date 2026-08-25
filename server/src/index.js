@@ -14,6 +14,7 @@ const categoriesRoutes = require("./routes/categories.routes");
 const expensesRoutes = require("./routes/expenses.routes");
 const balancesRoutes = require("./routes/balances.routes");
 const exportRoutes = require("./routes/export.routes");
+const questsRoutes = require("./routes/quests.routes");
 
 const app = express();
 app.disable("x-powered-by");
@@ -31,6 +32,7 @@ app.use("/api/projects/:id/categories", categoriesRoutes);
 app.use("/api/projects/:id/expenses", expensesRoutes);
 app.use("/api/projects/:id/balances", balancesRoutes);
 app.use("/api/projects/:id/export", exportRoutes);
+app.use("/api/quests", questsRoutes);
 
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 

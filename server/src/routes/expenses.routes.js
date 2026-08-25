@@ -40,13 +40,13 @@ router.post("/", (req, res) => {
   const { title, currency, amount, paidBy, date, categoryId, categoryName, participantIds } = req.body || {};
 
   const trimmedTitle = (title || "").trim();
-  if (!trimmedTitle) return res.status(400).json({ error: "El titulo del gasto es obligatorio." });
-  if (!validateCurrency(currency)) return res.status(400).json({ error: "Moneda invalida." });
+  if (!trimmedTitle) return res.status(400).json({ error: "El título del gasto es obligatorio." });
+  if (!validateCurrency(currency)) return res.status(400).json({ error: "Moneda inválida." });
   const amountCents = toCents(amount);
-  if (amountCents === null) return res.status(400).json({ error: "El importe debe ser un numero mayor a cero." });
-  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: "Fecha invalida." });
+  if (amountCents === null) return res.status(400).json({ error: "El importe debe ser un número mayor a cero." });
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: "Fecha inválida." });
   if (!Array.isArray(participantIds) || participantIds.length === 0) {
-    return res.status(400).json({ error: "Selecciona al menos una persona en 'Para'." });
+    return res.status(400).json({ error: "Seleccioná al menos una persona en 'Para'." });
   }
 
   const activeMembers = getActiveMembers(req.project.id);
@@ -64,7 +64,7 @@ router.post("/", (req, res) => {
   let category;
   if (categoryId) {
     category = db.prepare("SELECT * FROM categories WHERE id = ? AND project_id = ?").get(categoryId, req.project.id);
-    if (!category) return res.status(400).json({ error: "Categoria invalida." });
+    if (!category) return res.status(400).json({ error: "Categoría inválida." });
   } else if (categoryName && categoryName.trim()) {
     const trimmedCat = categoryName.trim();
     category = db.prepare("SELECT * FROM categories WHERE project_id = ? AND name = ?").get(req.project.id, trimmedCat);
@@ -75,7 +75,7 @@ router.post("/", (req, res) => {
       category = db.prepare("SELECT * FROM categories WHERE id = ?").get(info.lastInsertRowid);
     }
   } else {
-    return res.status(400).json({ error: "Selecciona o crea una categoria." });
+    return res.status(400).json({ error: "Seleccioná o creá una categoría." });
   }
 
   const splits = splitCents(amountCents, participants);

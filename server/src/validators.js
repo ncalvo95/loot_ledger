@@ -5,15 +5,15 @@ const CURRENCIES = ["EUR", "USD", "ARS"];
 function validateUsername(username) {
   if (typeof username !== "string") return "El usuario es obligatorio.";
   if (!USERNAME_REGEX.test(username)) {
-    return "El usuario debe tener entre 4 y 10 caracteres, solo letras, numeros, puntos, guiones o guion bajo.";
+    return "El usuario debe tener entre 4 y 10 caracteres, solo letras, números, puntos, guiones o guion bajo.";
   }
   return null;
 }
 
 function validatePassword(password) {
-  if (typeof password !== "string") return "La contrasena es obligatoria.";
+  if (typeof password !== "string") return "La contraseña es obligatoria.";
   if (!PASSWORD_REGEX.test(password)) {
-    return "La contrasena debe tener entre 6 y 16 caracteres, solo letras, numeros, puntos, guiones o guion bajo.";
+    return "La contraseña debe tener entre 6 y 16 caracteres, solo letras, números, puntos, guiones o guion bajo.";
   }
   return null;
 }

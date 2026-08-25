@@ -2,8 +2,8 @@ const jwt = require("jsonwebtoken");
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 const COOKIE_NAME = "loot_ledger_token";
-const REMEMBER_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 dias
-const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 1 dia
+const REMEMBER_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 días
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 1 día
 
 function signToken(user, ttlMs) {
   return jwt.sign(
@@ -21,7 +21,7 @@ function setAuthCookie(res, user, remember) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production" && process.env.COOKIE_SECURE !== "false",
   };
-  // Sin "recordarme" se emite una cookie de sesion (sin maxAge): el navegador
+  // Sin "recordarme" se emite una cookie de sesión (sin maxAge): el navegador
   // la descarta al cerrarse, aunque el JWT igual expira solo a las 24hs.
   if (remember) cookieOpts.maxAge = ttlMs;
   res.cookie(COOKIE_NAME, token, cookieOpts);
@@ -39,7 +39,7 @@ function requireAuth(req, res, next) {
     req.user = payload;
     next();
   } catch (err) {
-    return res.status(401).json({ error: "Sesion invalida o expirada." });
+    return res.status(401).json({ error: "Sesión inválida o expirada." });
   }
 }
 

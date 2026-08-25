@@ -1,7 +1,7 @@
 {
   "name": "loot-ledger-server",
   "version": "1.0.0",
-  "description": "Loot Ledger - servidor de triangulacion de gastos",
+  "description": "Loot Ledger - servidor de triangulación de gastos",
   "private": true,
   "type": "commonjs",
   "main": "src/index.js",

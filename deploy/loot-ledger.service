@@ -1,5 +1,5 @@
 [Unit]
-Description=Loot Ledger - triangulacion de gastos
+Description=Loot Ledger - triangulación de gastos
 After=network.target
 
 [Service]

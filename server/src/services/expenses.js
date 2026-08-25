@@ -55,4 +55,37 @@ function listExpenses(projectId, { month, year } = {}) {
   }));
 }
 
-module.exports = { listExpenses };
+// Crea un gasto de categoria "Reembolso" que cancela una deuda puntual entre
+// dos miembros de un proyecto: el que paga cubre el total y se lo asigna
+// entero al que lo recibe, saldando esa deuda en la triangulacion.
+function createReimbursementExpense({ projectId, payerId, recipientId, amountCents, currency, createdBy }) {
+  let category = db
+    .prepare("SELECT * FROM categories WHERE project_id = ? AND name = 'Reembolso'")
+    .get(projectId);
+  if (!category) {
+    const info = db
+      .prepare("INSERT INTO categories (project_id, name, is_default) VALUES (?, 'Reembolso', 1)")
+      .run(projectId);
+    category = db.prepare("SELECT * FROM categories WHERE id = ?").get(info.lastInsertRowid);
+  }
+
+  const insert = db.transaction(() => {
+    const info = db
+      .prepare(
+        `INSERT INTO expenses (project_id, category_id, title, currency, amount_cents, paid_by, expense_date, created_by)
+         VALUES (?, ?, 'Reembolso', ?, ?, ?, date('now'), ?)`
+      )
+      .run(projectId, category.id, currency, amountCents, payerId, createdBy);
+    const expenseId = info.lastInsertRowid;
+    db.prepare("INSERT INTO expense_splits (expense_id, user_id, share_cents) VALUES (?, ?, ?)").run(
+      expenseId,
+      recipientId,
+      amountCents
+    );
+    return expenseId;
+  });
+
+  return insert();
+}
+
+module.exports = { listExpenses, createReimbursementExpense };

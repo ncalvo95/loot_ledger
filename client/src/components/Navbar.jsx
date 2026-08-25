@@ -36,6 +36,9 @@ export default function Navbar() {
             <span className="text-neon-green">●</span> {user.username}
             {user.role === "admin" && <span className="badge border-neon-purple/60 text-neon-purple ml-2">admin</span>}
           </span>
+          <Link to="/quests" className="btn-ghost !px-2 !py-1">
+            {t("nav.quests")}
+          </Link>
           <button onClick={() => setShowChangePassword(true)} className="btn-ghost !px-2 !py-1">
             {t("nav.changePassword")}
           </button>

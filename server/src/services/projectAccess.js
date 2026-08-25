@@ -15,8 +15,8 @@ function isProjectOwner(project, userId) {
   return project.owner_id === userId;
 }
 
-// Duenos y administradores de proyecto (o el administrador global) pueden
-// gestionar miembros, categorias y gastos ajenos.
+// Dueños y administradores de proyecto (o el administrador global) pueden
+// gestionar miembros, categorías y gastos ajenos.
 function canManageProject(project, req) {
   if (req.user.role === "admin") return true;
   const role = getMemberRole(project.id, req.user.id);
@@ -35,7 +35,7 @@ function requireProjectAccess(req, res, next) {
   if (req.user.role === "admin") return next();
   const membership = getMembership(req.project.id, req.user.id);
   if (!membership || membership.status === "removed") {
-    return res.status(403).json({ error: "No tenes acceso a este proyecto." });
+    return res.status(403).json({ error: "No tenés acceso a este proyecto." });
   }
   req.membership = membership;
   next();
