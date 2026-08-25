@@ -14,5 +14,27 @@ services:
     volumes:
       - loot_ledger_data:/app/server/data
 
+  # Opcional: expone la app en internet a través de un túnel saliente de
+  # Cloudflare, sin abrir puertos en el router y con HTTPS automático.
+  # No arranca con "docker compose up -d" normal: hace falta el perfil
+  # "tunnel" (ver docs/deploy-ssd-domain.md) y la variable
+  # CLOUDFLARE_TUNNEL_TOKEN en server/.env o en el entorno.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: loot-ledger-tunnel
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      # Sin valor requerido a propósito: Docker Compose interpola las
+      # variables de TODOS los servicios (incluso los de otros perfiles)
+      # antes de filtrar por perfil, así que un "${VAR:?...}" acá rompería
+      # también el "docker compose up -d" normal, sin el perfil "tunnel".
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      - loot-ledger
+    profiles:
+      - tunnel
+
 volumes:
   loot_ledger_data:
+    name: loot_ledger_data

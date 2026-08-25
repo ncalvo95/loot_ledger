@@ -4,3 +4,4 @@ dist/
 **/data/*.db-*
 .env
 *.log
+/backups/

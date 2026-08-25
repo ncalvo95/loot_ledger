@@ -18,9 +18,15 @@ La RPi 3B tiene solo 1 GB de RAM y una CPU modesta, así que se prioriza consumo
 ```
 server/   API + base de datos SQLite
 client/   Frontend React (Vite)
-deploy/   Ejemplo de servicio systemd
+deploy/   Servicio systemd + scripts de backup/restore
+docs/     Guias adicionales (SSD, dominio propio, acceso remoto)
 Dockerfile, docker-compose.yml
 ```
+
+> Para instalar en un SSD por USB (recomendado para uso 24/7) y exponer la
+> app en internet con tu propio dominio (ej. `www.loot-ledger.io`) sin abrir
+> puertos en el router, ver
+> [`docs/deploy-ssd-domain.md`](docs/deploy-ssd-domain.md).
 
 ## Usuario administrador por defecto
 
@@ -119,8 +125,19 @@ Ajusta `User=` y las rutas dentro de `loot-ledger.service` si tu usuario o carpe
 - **Exportación a Excel**: desde el Ledger, botón para exportar el histórico completo, por mes o por año — genera un `.xlsx` con tablas de Excel (gastos, balances y deudas).
 - **Idioma**: español / inglés, con un toggle en la barra superior (se guarda en el navegador de cada usuario).
 
-## Backup
+## Backup y migración
 
-Con Docker: respaldar el volumen `loot_ledger_data` (o copiar el archivo `.db` de dentro del volumen).
+Con Docker (recomendado, incluido en el repo):
 
-Con instalación manual: copiar el archivo indicado en `DB_PATH` (por defecto `server/data/loot-ledger.db`, junto con sus archivos `-wal`/`-shm` si existen) con el servicio detenido, o usar `sqlite3 loot-ledger.db ".backup respaldo.db"` en caliente.
+```bash
+./deploy/backup.sh                      # genera ./backups/loot-ledger-backup-*.tar.gz
+./deploy/restore.sh ruta/al/archivo.tar.gz   # restaura (pide confirmación, reinicia el servicio)
+```
+
+Estos scripts no dependen de conocer el nombre físico del volumen de Docker
+ni del nombre de la carpeta del proyecto, así que sirven igual para
+respaldar como para migrar a otro disco o a otra Raspberry Pi — ver
+[`docs/deploy-ssd-domain.md`](docs/deploy-ssd-domain.md) para el flujo
+completo de migración.
+
+Con instalación manual (sin Docker): copiar el archivo indicado en `DB_PATH` (por defecto `server/data/loot-ledger.db`, junto con sus archivos `-wal`/`-shm` si existen) con el servicio detenido, o usar `sqlite3 loot-ledger.db ".backup respaldo.db"` en caliente.
