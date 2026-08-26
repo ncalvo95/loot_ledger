@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 
@@ -25,7 +26,7 @@ export default function ChangePasswordModal({ onClose }) {
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/70 flex items-start justify-center overflow-y-auto px-4 py-8 z-30">
       <div className="panel p-6 w-full max-w-sm space-y-4 shadow-neon">
         <h3 className="font-display uppercase tracking-widest text-neon-cyan text-sm">
@@ -74,6 +75,7 @@ export default function ChangePasswordModal({ onClose }) {
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
