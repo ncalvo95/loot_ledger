@@ -402,7 +402,7 @@ export default function AdminPanel() {
       )}
 
       {resetTarget && (
-        <div className="fixed inset-0 bg-black/70 flex items-start sm:items-center justify-center overflow-y-auto px-4 py-6 z-30">
+        <div className="fixed inset-0 bg-black/70 flex items-start justify-center overflow-y-auto px-4 py-10 sm:py-16 z-30">
           <form onSubmit={doResetPassword} className="panel p-6 w-full max-w-sm space-y-4 shadow-neon max-h-[85vh] overflow-y-auto">
             <h3 className="font-display uppercase tracking-widest text-neon-cyan text-sm">
               {t("admin.resetPassword")} — {resetTarget.username}
@@ -429,7 +429,7 @@ export default function AdminPanel() {
       )}
 
       {renameTarget && (
-        <div className="fixed inset-0 bg-black/70 flex items-start sm:items-center justify-center overflow-y-auto px-4 py-6 z-30">
+        <div className="fixed inset-0 bg-black/70 flex items-start justify-center overflow-y-auto px-4 py-10 sm:py-16 z-30">
           <form onSubmit={doRename} className="panel p-6 w-full max-w-sm space-y-4 shadow-neon max-h-[85vh] overflow-y-auto">
             <h3 className="font-display uppercase tracking-widest text-neon-cyan text-sm">
               {t("admin.rename")} — {renameTarget.username}
@@ -455,7 +455,7 @@ export default function AdminPanel() {
       )}
 
       {resolveTarget && (
-        <div className="fixed inset-0 bg-black/70 flex items-start sm:items-center justify-center overflow-y-auto px-4 py-6 z-30">
+        <div className="fixed inset-0 bg-black/70 flex items-start justify-center overflow-y-auto px-4 py-10 sm:py-16 z-30">
           <form onSubmit={doResolveRequest} className="panel p-6 w-full max-w-sm space-y-4 shadow-neon max-h-[85vh] overflow-y-auto">
             <h3 className="font-display uppercase tracking-widest text-neon-cyan text-sm">
               {t("admin.resetPassword")} — {resolveTarget.username}
