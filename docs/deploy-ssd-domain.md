@@ -19,9 +19,9 @@ Para el acceso remoto, esta guía cubre dos caminos:
   requiere abrir puertos en el router, funciona aunque tu ISP no te dé IP
   pública, y maneja el certificado HTTPS solo.
 
-Pasar de uno a otro más adelante es cambiar una variable en `server/.env` y
-correr el perfil de Docker Compose correspondiente — no hay que tocar nada
-más.
+Pasar de uno a otro más adelante es cambiar una variable en el `.env` de la
+raíz del repo y correr el perfil de Docker Compose correspondiente — no hay
+que tocar nada más.
 
 No hace falta tocar nada del código de la app para que funcione con un
 dominio propio — las URLs del frontend son todas relativas y la cookie de
@@ -254,18 +254,34 @@ sudo apt install -y docker-compose-plugin
 git clone https://github.com/ncalvo95/loot_ledger.git
 cd loot_ledger
 git checkout claude/loot-ledger-expense-app-knqvqz   # o main si ya se mergeo
-
-cp server/.env.example server/.env
-nano server/.env
 ```
 
-En `server/.env` como mínimo cambiá:
+**Importante — con Docker las variables van en un `.env` en la raíz del
+repo, no en `server/.env`**: `server/.env` es el que usa la instalación
+manual sin Docker (Opción B del README); Docker Compose solo lee
+automáticamente un archivo llamado `.env` que esté **al lado de
+`docker-compose.yml`** (o sea, en `~/loot_ledger/.env`, la carpeta donde
+estás parado ahora). Si editás `server/.env` con Docker, esos valores
+nunca le llegan al contenedor y no vas a notar ningún error — simplemente
+arranca con los valores por defecto, como te pasó con la contraseña.
 
-- `JWT_SECRET`: una clave larga y aleatoria (por ejemplo, generala con
-  `openssl rand -hex 32`).
-- `ADMIN_DEFAULT_PASSWORD`: si querés arrancar con otra contraseña para
-  `administrator` que no sea `11223344` (si ya la vas a cambiar desde el
-  panel apenas entres, esto es opcional).
+```bash
+cat > .env <<'EOF'
+JWT_SECRET=cambiame-por-una-clave-larga-y-aleatoria
+ADMIN_DEFAULT_PASSWORD=cambiame-tambien
+EOF
+nano .env   # revisá/editá los valores antes de levantar la app
+```
+
+Generá el `JWT_SECRET` con `openssl rand -hex 32` y pegalo ahí en vez del
+placeholder.
+
+**`ADMIN_DEFAULT_PASSWORD` solo aplica la primera vez** que la app crea la
+cuenta `administrator` (la primera vez que corre `docker compose up`, si
+todavía no existe ningún dato). Si ya la levantaste antes y la cuenta
+`administrator` ya está creada en la base, cambiar esta variable después
+**no** le cambia la contraseña — para eso hay que usar el Panel (ver el
+Paso 6, "Cambiar la contraseña del admin").
 
 ```bash
 docker compose up -d --build
@@ -368,9 +384,11 @@ reenvía todo a la app.
    Te queda `loot-ledger.duckdns.org`.
 3. Arriba de la página vas a ver tu **token** (un código largo tipo
    `a1b2c3d4-...`). Copialo.
-4. En la Pi, agregá esto a `server/.env`:
+4. En la Pi, agregá esto al `.env` de la **raíz del repo** (el mismo que
+   creaste en el paso 3, al lado de `docker-compose.yml` — no
+   `server/.env`, ver la nota del paso 3 sobre por qué):
    ```bash
-   cat >> server/.env << 'EOF'
+   cat >> .env << 'EOF'
    DUCKDNS_SUBDOMAIN=loot-ledger
    DUCKDNS_TOKEN=<el-token-que-copiaste>
    PUBLIC_DOMAIN=loot-ledger.duckdns.org
@@ -414,9 +432,10 @@ El certificado HTTPS también lo maneja Cloudflare solo.
    `loot-ledger-pi`.
 4. Te va a mostrar un comando de instalación con un **token** largo (empieza
    con `eyJ...`). Copiá solo el token.
-5. En la Pi, agregalo a `server/.env`:
+5. En la Pi, agregalo al `.env` de la raíz del repo (no `server/.env` — ver
+   la nota del paso 3):
    ```bash
-   echo "CLOUDFLARE_TUNNEL_TOKEN=<el-token-que-copiaste>" >> server/.env
+   echo "CLOUDFLARE_TUNNEL_TOKEN=<el-token-que-copiaste>" >> .env
    ```
 6. Si tenías levantado el perfil `duckdns`, bajalo primero (los dos métodos
    no hace falta correrlos juntos):
@@ -483,7 +502,8 @@ del disco nuevo.
 - [ ] IP local fija asignada a la Pi (reserva en el router o estática) y
       verificada con `curl http://<esa-ip>:3000/api/health`
 - [ ] Confirmaste que tu conexión NO tiene CGNAT (paso 0 de la sección 5)
-- [ ] Subdominio creado en DuckDNS, token copiado a `server/.env`
+- [ ] Subdominio creado en DuckDNS, token copiado al `.env` de la raíz del
+      repo (no `server/.env`)
 - [ ] Puertos 80 y 443 forwardeados en el router hacia la Pi
 - [ ] `docker compose --profile duckdns up -d` corriendo
 - [ ] `https://loot-ledger.duckdns.org` responde desde datos móviles
@@ -494,7 +514,8 @@ del disco nuevo.
 
 - [ ] Dominio comprado y nameservers apuntando a Cloudflare (estado
       "Active" en el dashboard)
-- [ ] `CLOUDFLARE_TUNNEL_TOKEN` en `server/.env`
+- [ ] `CLOUDFLARE_TUNNEL_TOKEN` en el `.env` de la raíz del repo (no
+      `server/.env`)
 - [ ] `docker compose --profile duckdns down` (si veías corriendo DuckDNS)
 - [ ] `docker compose --profile tunnel up -d` corriendo
 - [ ] Public Hostname configurado en Cloudflare (`www` → `loot-ledger:3000`)
