@@ -3,6 +3,7 @@ export const translations = {
     appName: "Loot Ledger",
     common: {
       cancel: "Cancelar",
+      refresh: "Actualizar",
       save: "Guardar",
       confirm: "Confirmar",
       close: "Cerrar",
@@ -185,7 +186,7 @@ export const translations = {
       settling: "Completando...",
       settleConfirm: "¿Marcar esta deuda como reembolsada en este proyecto?",
       cantSettle: "No se puede saldar automáticamente (algún jugador ya no es miembro activo del proyecto).",
-      empty: "No tenés quests pendientes. ¡Estás en paz con todo el mundo!",
+      empty: "No hay misiones pendientes.",
       youOwePrefix: "Le debés",
       owesYouPrefix: "Te debe",
     },
@@ -204,6 +205,7 @@ export const translations = {
     appName: "Loot Ledger",
     common: {
       cancel: "Cancel",
+      refresh: "Refresh",
       save: "Save",
       confirm: "Confirm",
       close: "Close",

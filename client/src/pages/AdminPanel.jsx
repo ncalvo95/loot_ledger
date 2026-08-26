@@ -48,9 +48,15 @@ export default function AdminPanel() {
     setResetRequests(data.requests);
   };
 
-  useEffect(() => {
+  const refreshAll = () => {
     loadUsers();
     loadResetRequests();
+  };
+
+  useEffect(() => {
+    refreshAll();
+    const interval = setInterval(refreshAll, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const pendingUsers = users.filter((u) => u.status === "pending");
@@ -199,7 +205,7 @@ export default function AdminPanel() {
         <p className="text-slate-400 text-sm mt-1">{t("admin.subtitle")}</p>
       </div>
 
-      <nav className="flex gap-2">
+      <nav className="flex gap-2 flex-wrap items-center">
         {TABS.map((tb) => (
           <button
             key={tb.key}
@@ -214,6 +220,9 @@ export default function AdminPanel() {
             {!!tb.badge && <span className="ml-1.5 text-neon-gold">{tb.badge}</span>}
           </button>
         ))}
+        <button className="btn-ghost ml-auto" onClick={refreshAll}>
+          ↻ {t("common.refresh")}
+        </button>
       </nav>
 
       {error && <p className="text-neon-red text-sm">{error}</p>}
