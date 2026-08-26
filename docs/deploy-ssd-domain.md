@@ -92,45 +92,150 @@ Repetí exactamente lo mismo con la SD de 32GB:
 
 ### 1.3. Habilitar el arranque por USB (usando la SD, una sola vez)
 
+La Raspberry Pi 3B (a diferencia de la 3B+/4) **no tiene** la EEPROM
+regrabable que usan `rpi-eeprom-update` y el menú **Advanced Options → Boot
+Order** de `raspi-config` — si esa opción no te aparece, es normal, no es
+que algo esté mal en tu instalación. En la 3B el arranque por USB se
+habilita con un bit especial ("OTP", One-Time Programmable: se graba una
+sola vez de forma permanente y no se puede deshacer) que se activa desde
+`config.txt`.
+
 1. Poné **solo la SD** en la Pi (el SSD todavía no va conectado) y prendé.
    Va a arrancar de la SD normalmente — esto es esperado y correcto.
 2. Conectate por SSH (`ssh <usuario>@loot-ledger.local`, o por la IP que le
-   haya dado tu router) y corré:
+   haya dado tu router) y confirmá primero dónde vive `config.txt` en tu
+   versión de Raspberry Pi OS — **esto es importante**: desde Bookworm (la
+   que te indiqué instalar) el archivo se movió a `/boot/firmware/`, y ya
+   no está en `/boot/` a secas:
    ```bash
-   sudo rpi-eeprom-update -a
-   sudo reboot
+   ls /boot/firmware/config.txt 2>/dev/null && echo "-> usá /boot/firmware/config.txt"
+   ls /boot/config.txt 2>/dev/null && echo "-> usá /boot/config.txt"
    ```
-3. Esperá a que reinicie, conectate de nuevo por SSH y corré:
+   Anotá cuál de los dos te devolvió una ruta real (no "No such file or
+   directory") — es el que vas a usar en el paso siguiente. Si editás el
+   que no corresponde, el bootloader nunca lee el cambio y por más que
+   reinicies mil veces no va a pasar nada (este es el error más común acá).
+3. Agregá la línea, con la ruta correcta del paso anterior:
    ```bash
-   sudo raspi-config
+   echo "program_usb_boot_mode=1" | sudo tee -a /boot/firmware/config.txt
    ```
-   Andá a **Advanced Options → Boot Order** y elegí la opción que dice
-   **USB Boot** (o "SD Card Boot" seguido de USB — el nombre exacto varía
-   según la versión de `raspi-config`, buscá la que priorice USB). Salí y
-   confirmá el reinicio cuando te lo pida.
-4. Apagá la Pi del todo (`sudo poweroff` o desenchufala), **sacá la SD**,
-   **conectá el SSD** en su lugar, y prendé.
+4. Apagá del todo y **cortá la alimentación de verdad** — no alcanza con
+   `sudo reboot`: tiene que ser un apagado completo y volver a enchufar,
+   para que el bootloader arranque de cero y grabe el bit:
+   ```bash
+   sudo poweroff
+   # esperá a que se apaguen las luces, desenchufá la alimentación,
+   # contá 5 segundos, volvé a enchufar
+   ```
+5. Ya de nuevo en la SD, verificá que el bit haya quedado grabado:
+   ```bash
+   vcgencmd otp_dump | grep 17:
+   ```
+   Fijate la fila `17:`. Si el segundo dígito después de los dos puntos es
+   un `3` (por ejemplo `17:3020000a`), el USB boot quedó habilitado; si
+   sigue en `1` (`17:1020000a`), no se grabó — repetí el paso 3 verificando
+   bien la ruta del archivo. Si no estás seguro de cómo leerlo, pegame el
+   valor completo y lo confirmamos juntos.
+6. Apagá del todo, **sacá la SD**, **conectá el SSD** en su lugar, y
+   prendé.
 
 Si arrancó bien: estás corriendo desde el SSD, y la SD ya cumplió su
 función — guardala para otro uso, no hace falta que vuelva a esta Pi.
 
 ### Si no arranca del SSD
 
-- **Pantalla completamente negra, sin nada**: lo más probable es que el
-  paso 1.3 no haya quedado guardado (por ejemplo, si no reiniciaste después
-  de cambiar el Boot Order). Volvé a poner la SD sola, entrá de nuevo y
-  confirmá el Boot Order con `sudo raspi-config` otra vez.
-- **Seguís sin arrancar aunque el Boot Order ya diga USB primero**: puede
-  ser el adaptador USB-SATA del gabinete del SSD (algunos genéricos no son
-  compatibles con el boot de la Pi, aunque sí funcionan para leer/escribir
-  datos una vez arrancada de otro lado), o que la SSD esté tomando más
-  corriente de la que da el puerto USB de la Pi — probá con un hub USB
-  alimentado en el medio, o alimentación externa si el gabinete lo permite.
-- **Plan B si nada de esto funciona**: bootear siempre de la SD de 32GB
-  (ya no como paso temporal, sino como forma permanente), y montar el SSD
-  en `/home/pi/loot_ledger` vía `/etc/fstab` — la escritura pesada (la base
-  de datos) sigue cayendo en el SSD igual, solo que el sistema arranca de
-  la SD en vez del SSD.
+- **Volvé a chequear el paso 1.3 completo**: el error más común es haber
+  editado `/boot/config.txt` en un sistema Bookworm, cuando el archivo real
+  es `/boot/firmware/config.txt` (`tee` no avisa si el archivo no existía:
+  simplemente crea uno nuevo en un lugar que nadie lee). El segundo más
+  común es reiniciar con `sudo reboot` en vez de cortar la alimentación de
+  verdad. Confirmá con `vcgencmd otp_dump | grep 17:` (paso 5) antes de
+  seguir probando.
+- **El bit ya está en `3` y sigue sin arrancar**: puede ser el adaptador
+  USB-SATA del gabinete del SSD (algunos genéricos no son compatibles con
+  el boot de la Pi, aunque sí funcionan para leer/escribir datos una vez
+  arrancada de otro lado), o que la SSD esté tomando más corriente de la
+  que da el puerto USB de la Pi — probá con un hub USB alimentado en el
+  medio, o alimentación externa si el gabinete lo permite.
+- **Plan B si nada de esto funciona**: bootear siempre de la SD, y usar el
+  SSD solo como disco de datos. Ver la sección siguiente — es un camino
+  totalmente soportado, no una solución a medias.
+
+### Plan B: bootear de la SD, SSD solo como disco de datos
+
+Si después de lo anterior preferís no seguir peleando con el boot por USB,
+esta alternativa te deja igual de bien parado: la SD solo carga el sistema
+operativo y Docker, pero **todos los datos de la app** (y de paso, todas
+las imágenes y contenedores de Docker) viven en el SSD. La SD deja de sufrir
+la escritura pesada de la base de datos y de las imágenes, así que igual
+ganás la durabilidad que buscabas — solo que el arranque en sí sigue
+siendo desde la SD.
+
+No hace falta formatear el SSD desde Windows antes de nada — Windows no
+sabe crear el formato que necesitamos (`ext4`, nativo de Linux), y además
+el SSD todavía tiene la instalación de Raspberry Pi OS que le grabaste
+antes, así que hay que borrarla igual. Todo esto se hace **desde la propia
+Pi**, ya booteada por SD, con el SSD conectado:
+
+1. Identificá el SSD (¡con cuidado de no confundirlo con la SD, que
+   aparece como `mmcblk0`!):
+   ```bash
+   lsblk
+   ```
+   El SSD va a aparecer como `sda` (o similar), sin el prefijo `mmcblk`.
+   Los pasos siguientes asumen `/dev/sda` — ajustá si el tuyo es distinto.
+2. Borrá la tabla de particiones vieja y creá una sola partición nueva
+   ocupando todo el disco:
+   ```bash
+   sudo parted /dev/sda --script mklabel gpt mkpart primary ext4 0% 100%
+   ```
+3. Formateala como `ext4`:
+   ```bash
+   sudo mkfs.ext4 -L lootledger-ssd /dev/sda1
+   ```
+4. Anotá su UUID (lo vas a necesitar para el paso siguiente):
+   ```bash
+   sudo blkid /dev/sda1
+   ```
+5. Creá el punto de montaje y agregalo a `/etc/fstab` con ese UUID (nunca
+   con `/dev/sda1` directo: el nombre puede cambiar entre reinicios si
+   conectás otro disco USB; `nofail` evita que la Pi no arranque si algún
+   día el SSD no está conectado):
+   ```bash
+   sudo mkdir -p /mnt/lootledger-ssd
+   echo "UUID=$(sudo blkid -s UUID -o value /dev/sda1)  /mnt/lootledger-ssd  ext4  defaults,nofail  0  2" | sudo tee -a /etc/fstab
+   sudo mount -a
+   df -h /mnt/lootledger-ssd   # confirmá que aparece montado
+   ```
+6. Mudá **todo** el almacenamiento de Docker (imágenes, contenedores, y el
+   volumen con la base de datos de la app) al SSD, cambiando su
+   `data-root`. Es el cambio más simple posible: no requiere tocar
+   `docker-compose.yml` ni nada del código, porque Docker sigue viendo el
+   volumen `loot_ledger_data` igual que siempre, solo que ahora sus
+   archivos físicos están en el SSD:
+   ```bash
+   sudo systemctl stop docker
+   sudo mkdir -p /mnt/lootledger-ssd/docker
+   sudo rsync -axHAX /var/lib/docker/ /mnt/lootledger-ssd/docker/
+   echo '{ "data-root": "/mnt/lootledger-ssd/docker" }' | sudo tee /etc/docker/daemon.json
+   sudo mv /var/lib/docker /var/lib/docker.bak   # queda de respaldo, no lo borres todavía
+   sudo systemctl start docker
+   docker info | grep "Docker Root Dir"   # tiene que mostrar /mnt/lootledger-ssd/docker
+   ```
+7. Levantá la app de nuevo (va a recrear el contenedor apuntando al nuevo
+   `data-root`, con los mismos datos que ya tenía):
+   ```bash
+   cd ~/loot_ledger
+   docker compose up -d --build
+   ```
+   Una vez que confirmes que todo funciona bien (entrá a la app, fijate
+   que tus proyectos y gastos sigan ahí), podés borrar el respaldo:
+   `sudo rm -rf /var/lib/docker.bak`.
+
+Con esto: la SD solo tiene el sistema operativo y el motor de Docker (poca
+escritura, así que dura mucho más), y el SSD tiene todo lo pesado. Los
+scripts `backup.sh`/`restore.sh` funcionan exactamente igual que antes, sin
+ningún cambio — no les importa dónde vive físicamente el volumen.
 
 ## 2. Instalar Docker
 
