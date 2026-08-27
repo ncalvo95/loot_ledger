@@ -1,15 +1,19 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import { Loading } from "../components/ProtectedRoute.jsx";
 
 export default function ForgotPassword() {
-  const { forgotPassword } = useAuth();
+  const { forgotPassword, user, loading } = useAuth();
   const { t, tError } = useLanguage();
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  if (loading) return <Loading />;
+  if (user) return <Navigate to="/" replace />;
 
   const onSubmit = async (e) => {
     e.preventDefault();

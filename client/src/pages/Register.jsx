@@ -1,15 +1,16 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import LanguageToggle from "../components/LanguageToggle.jsx";
 import PasswordInput from "../components/PasswordInput.jsx";
+import { Loading } from "../components/ProtectedRoute.jsx";
 
 const USERNAME_RULE = /^[A-Za-z0-9._-]{4,10}$/;
 const PASSWORD_RULE = /^[A-Za-z0-9._-]{6,16}$/;
 
 export default function Register() {
-  const { register } = useAuth();
+  const { register, user, loading } = useAuth();
   const { t, tError } = useLanguage();
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
@@ -18,6 +19,9 @@ export default function Register() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState(false);
+
+  if (loading) return <Loading />;
+  if (user && !pending) return <Navigate to="/" replace />;
 
   const onSubmit = async (e) => {
     e.preventDefault();
