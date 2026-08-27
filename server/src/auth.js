@@ -26,7 +26,12 @@ function clearAuthCookie(res) {
 
 function requireAuth(req, res, next) {
   const token = req.cookies ? req.cookies[COOKIE_NAME] : null;
-  if (!token) return res.status(401).json({ error: "No autenticado." });
+  if (!token) {
+    console.warn(
+      `[auth] sin token: header-cookie="${req.headers.cookie || ""}" secure=${req.secure} host=${req.headers.host}`
+    );
+    return res.status(401).json({ error: "No autenticado." });
+  }
 
   const session = findValidSession(token);
   if (!session || session.status !== "active") {
