@@ -17,3 +17,12 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     </BrowserRouter>
   </React.StrictMode>
 );
+
+// Necesario para que Android/Chrome trate el sitio como una PWA instalable
+// (pantalla completa desde el ícono del home) en vez de un simple acceso
+// directo con la barra del navegador visible.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js");
+  });
+}
