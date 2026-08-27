@@ -35,6 +35,7 @@ export const translations = {
       sessions: "Mis sesiones",
       quests: "Pending Quests",
       install: "📲 Instalar app",
+      menu: "Menú",
     },
     sessions: {
       title: "Sesiones activas",
@@ -252,6 +253,7 @@ export const translations = {
       sessions: "My sessions",
       quests: "Pending Quests",
       install: "📲 Install app",
+      menu: "Menu",
     },
     sessions: {
       title: "Active sessions",
