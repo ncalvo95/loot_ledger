@@ -2,12 +2,16 @@ const { createSession, findValidSession, touchSession } = require("./services/se
 
 const COOKIE_NAME = "loot_ledger_token";
 
-function setAuthCookie(res, user, remember, userAgent) {
+function setAuthCookie(req, res, user, remember, userAgent) {
   const { token, ttlMs } = createSession(user.id, { remember, userAgent });
   const cookieOpts = {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production" && process.env.COOKIE_SECURE !== "false",
+    // Una cookie "Secure" solo la guarda el navegador si la conexión es
+    // HTTPS real -- por eso se decide según req.secure (que con "trust
+    // proxy" refleja el X-Forwarded-Proto de Caddy) y no según NODE_ENV:
+    // fijarla en true siempre rompía el acceso por IP local en HTTP plano.
+    secure: req.secure && process.env.COOKIE_SECURE !== "false",
   };
   // Sin "recordarme" se emite una cookie de sesión (sin maxAge): el navegador
   // la descarta al cerrarse, aunque la sesión en el servidor igual expira
@@ -26,6 +30,10 @@ function requireAuth(req, res, next) {
 
   const session = findValidSession(token);
   if (!session || session.status !== "active") {
+    console.warn(
+      `[auth] sesión rechazada: tokenPrefix=${token.slice(0, 8)} encontrada=${!!session} ` +
+        `status=${session ? session.status : "n/a"} expira=${session ? session.expires_at : "n/a"} secure=${req.secure}`
+    );
     return res.status(401).json({ error: "Sesión inválida o expirada." });
   }
 

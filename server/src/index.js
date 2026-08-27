@@ -18,6 +18,10 @@ const questsRoutes = require("./routes/quests.routes");
 
 const app = express();
 app.disable("x-powered-by");
+// Necesario para que req.secure refleje la conexión real del cliente (HTTP
+// directo por IP vs HTTPS a través de Caddy), leyendo X-Forwarded-Proto en
+// vez de mirar la conexión interna Caddy->Node (que siempre es HTTP plano).
+app.set("trust proxy", true);
 app.use(express.json());
 app.use(cookieParser());
 

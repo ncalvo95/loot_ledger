@@ -46,7 +46,7 @@ router.post("/register", (req, res) => {
         "UPDATE users SET password_hash = ?, status = 'active', updated_at = datetime('now') WHERE id = ?"
       ).run(hash, existing.id);
       const reactivated = db.prepare("SELECT * FROM users WHERE id = ?").get(existing.id);
-      setAuthCookie(res, reactivated, false, req.get("user-agent"));
+      setAuthCookie(req, res, reactivated, false, req.get("user-agent"));
       return res.status(200).json({ user: publicUser(reactivated), status: "active", reactivated: true });
     }
     // status === 'rejected': se reenvía como nueva solicitud pendiente de aprobación.
@@ -91,7 +91,7 @@ router.post("/login", (req, res) => {
     });
   }
 
-  setAuthCookie(res, user, !!remember, req.get("user-agent"));
+  setAuthCookie(req, res, user, !!remember, req.get("user-agent"));
   return res.json({ user: publicUser(user) });
 });
 
