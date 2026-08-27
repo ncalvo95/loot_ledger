@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import PasswordInput from "../components/PasswordInput.jsx";
 
 const PASSWORD_RULE = /^[A-Za-z0-9._-]{6,16}$/;
 const USERNAME_RULE = /^[A-Za-z0-9._-]{4,10}$/;
@@ -304,8 +305,7 @@ export default function AdminPanel() {
                 value={newUserForm.username}
                 onChange={(e) => setNewUserForm((f) => ({ ...f, username: e.target.value }))}
               />
-              <input
-                type="password"
+              <PasswordInput
                 className="field"
                 placeholder={t("common.password")}
                 value={newUserForm.password}
@@ -407,8 +407,7 @@ export default function AdminPanel() {
             <h3 className="font-display uppercase tracking-widest text-neon-cyan text-sm">
               {t("admin.resetPassword")} — {resetTarget.username}
             </h3>
-            <input
-              type="password"
+            <PasswordInput
               className="field"
               placeholder={t("auth.passwordHint")}
               value={newPassword}
@@ -460,8 +459,7 @@ export default function AdminPanel() {
             <h3 className="font-display uppercase tracking-widest text-neon-cyan text-sm">
               {t("admin.resetPassword")} — {resolveTarget.username}
             </h3>
-            <input
-              type="password"
+            <PasswordInput
               className="field"
               placeholder={t("auth.passwordHint")}
               value={resolvePassword}

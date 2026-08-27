@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import LanguageToggle from "../components/LanguageToggle.jsx";
+import PasswordInput from "../components/PasswordInput.jsx";
 
 const USERNAME_RULE = /^[A-Za-z0-9._-]{4,10}$/;
 const PASSWORD_RULE = /^[A-Za-z0-9._-]{6,16}$/;
@@ -88,8 +89,7 @@ export default function Register() {
           </div>
           <div>
             <label className="label">{t("common.password")}</label>
-            <input
-              type="password"
+            <PasswordInput
               className="field"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -100,8 +100,7 @@ export default function Register() {
           </div>
           <div>
             <label className="label">{t("common.confirmPassword")}</label>
-            <input
-              type="password"
+            <PasswordInput
               className="field"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import PasswordInput from "./PasswordInput.jsx";
 
 export default function ChangePasswordModal({ onClose }) {
   const { changePassword } = useAuth();
@@ -43,8 +44,7 @@ export default function ChangePasswordModal({ onClose }) {
           <form onSubmit={onSubmit} className="space-y-3">
             <div>
               <label className="label">{t("common.currentPassword")}</label>
-              <input
-                type="password"
+              <PasswordInput
                 className="field"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
@@ -54,8 +54,7 @@ export default function ChangePasswordModal({ onClose }) {
             </div>
             <div>
               <label className="label">{t("common.newPassword")}</label>
-              <input
-                type="password"
+              <PasswordInput
                 className="field"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
