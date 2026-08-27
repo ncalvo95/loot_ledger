@@ -6,6 +6,13 @@ html, body, #root {
   height: 100%;
 }
 
+html {
+  /* Evita que Android/Chrome agrande la letra sola en pantallas angostas,
+     lo que hace parecer que la página arranca "con zoom". */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   @apply bg-ink-950 text-slate-100 font-body bg-grid bg-grid;
   background-color: #07070c;
@@ -14,6 +21,15 @@ body {
     linear-gradient(90deg, rgba(45,230,255,0.05) 1px, transparent 1px);
   background-size: 28px 28px;
   min-height: 100vh;
+}
+
+/* Por debajo de 16px, iOS Safari hace zoom automático al enfocar un campo
+   de texto -- en mobile forzamos 16px en los inputs para evitarlo, sin
+   perder el tamaño compacto en desktop. */
+@media (max-width: 640px) {
+  .field {
+    font-size: 16px;
+  }
 }
 
 ::selection {
