@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import ExpenseForm from "../components/ExpenseForm.jsx";
 import ExpenseList from "../components/ExpenseList.jsx";
+import CategoriesPanel from "../components/CategoriesPanel.jsx";
 import BalanceView from "../components/BalanceView.jsx";
 import MembersPanel from "../components/MembersPanel.jsx";
 import ExportPanel from "../components/ExportPanel.jsx";
@@ -19,6 +20,7 @@ export default function ProjectPage() {
   const [balances, setBalances] = useState([]);
   const [tab, setTab] = useState("ledger");
   const [showForm, setShowForm] = useState(false);
+  const [editingExpense, setEditingExpense] = useState(null);
   const [filterMonth, setFilterMonth] = useState("");
   const [filterYear, setFilterYear] = useState("");
   const [error, setError] = useState("");
@@ -108,6 +110,12 @@ export default function ProjectPage() {
         <div className="space-y-5">
           <ExportPanel projectId={id} />
 
+          <CategoriesPanel
+            projectId={id}
+            categories={detail.categories}
+            onChanged={() => Promise.all([loadDetail(), refreshAll()])}
+          />
+
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <input
@@ -139,7 +147,13 @@ export default function ProjectPage() {
               )}
             </div>
             {!showForm && (
-              <button className="btn-primary" onClick={() => setShowForm(true)}>
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  setEditingExpense(null);
+                  setShowForm(true);
+                }}
+              >
                 + {t("ledger.addExpense")}
               </button>
             )}
@@ -147,14 +161,20 @@ export default function ProjectPage() {
 
           {showForm && (
             <ExpenseForm
+              key={editingExpense?.id || "new"}
               projectId={id}
               members={memberOptions}
               categories={detail.categories}
+              editingExpense={editingExpense}
               onCreated={async () => {
                 setShowForm(false);
+                setEditingExpense(null);
                 await Promise.all([refreshAll(), loadDetail()]);
               }}
-              onCancel={() => setShowForm(false)}
+              onCancel={() => {
+                setShowForm(false);
+                setEditingExpense(null);
+              }}
             />
           )}
 
@@ -164,6 +184,10 @@ export default function ProjectPage() {
             canManage={detail.canManage}
             currentUserId={user.id}
             onChanged={refreshAll}
+            onEdit={(expense) => {
+              setEditingExpense(expense);
+              setShowForm(true);
+            }}
           />
         </div>
       )}

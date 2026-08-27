@@ -4,7 +4,7 @@ import { useLanguage } from "../i18n/LanguageContext.jsx";
 
 const CURRENCY_SYMBOL = { EUR: "€", USD: "$", ARS: "AR$" };
 
-export default function ExpenseList({ projectId, expenses, canManage, currentUserId, onChanged }) {
+export default function ExpenseList({ projectId, expenses, canManage, currentUserId, onChanged, onEdit }) {
   const { t } = useLanguage();
 
   const remove = async (id) => {
@@ -21,7 +21,7 @@ export default function ExpenseList({ projectId, expenses, canManage, currentUse
     <div className="space-y-3">
       {expenses.map((e) => {
         const isReimbursement = e.categoryName === "Reembolso";
-        const canDelete = canManage || e.createdBy === currentUserId;
+        const canEdit = canManage || e.createdBy === currentUserId;
         return (
           <div
             key={e.id}
@@ -51,7 +51,12 @@ export default function ExpenseList({ projectId, expenses, canManage, currentUse
               <span className="font-mono text-lg text-neon-green">
                 {CURRENCY_SYMBOL[e.currency] || e.currency} {e.amount.toFixed(2)}
               </span>
-              {canDelete && (
+              {canEdit && (
+                <button onClick={() => onEdit(e)} className="btn-secondary !px-2 !py-1 text-[10px]">
+                  {t("common.edit")}
+                </button>
+              )}
+              {canEdit && (
                 <button onClick={() => remove(e.id)} className="btn-danger !px-2 !py-1 text-[10px]">
                   {t("common.delete")}
                 </button>

@@ -12,16 +12,18 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export default function ExpenseForm({ projectId, members, categories, onCreated, onCancel }) {
+export default function ExpenseForm({ projectId, members, categories, editingExpense, onCreated, onCancel }) {
   const { t, tError } = useLanguage();
-  const [categoryId, setCategoryId] = useState(categories[0]?.id || "");
+  const [categoryId, setCategoryId] = useState(editingExpense?.categoryId || categories[0]?.id || "");
   const [newCategory, setNewCategory] = useState("");
-  const [title, setTitle] = useState("");
-  const [currency, setCurrency] = useState("EUR");
-  const [amount, setAmount] = useState("");
-  const [paidBy, setPaidBy] = useState(members[0]?.id || "");
-  const [date, setDate] = useState(today());
-  const [participantIds, setParticipantIds] = useState(members.map((m) => m.id));
+  const [title, setTitle] = useState(editingExpense?.title || "");
+  const [currency, setCurrency] = useState(editingExpense?.currency || "EUR");
+  const [amount, setAmount] = useState(editingExpense ? String(editingExpense.amount) : "");
+  const [paidBy, setPaidBy] = useState(editingExpense?.paidBy || members[0]?.id || "");
+  const [date, setDate] = useState(editingExpense?.date || today());
+  const [participantIds, setParticipantIds] = useState(
+    editingExpense ? editingExpense.participants.map((p) => p.userId) : members.map((m) => m.id)
+  );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -60,8 +62,12 @@ export default function ExpenseForm({ projectId, members, categories, onCreated,
       } else {
         payload.categoryId = Number(categoryId);
       }
-      await api.post(`/projects/${projectId}/expenses`, payload);
-      reset();
+      if (editingExpense) {
+        await api.put(`/projects/${projectId}/expenses/${editingExpense.id}`, payload);
+      } else {
+        await api.post(`/projects/${projectId}/expenses`, payload);
+        reset();
+      }
       onCreated();
     } catch (err) {
       setError(tError(err));
@@ -72,7 +78,9 @@ export default function ExpenseForm({ projectId, members, categories, onCreated,
 
   return (
     <form onSubmit={submit} className="panel p-5 space-y-4 border-neon-green/30">
-      <h3 className="font-display uppercase tracking-widest text-neon-green text-sm">{t("ledger.newExpense")}</h3>
+      <h3 className="font-display uppercase tracking-widest text-neon-green text-sm">
+        {editingExpense ? t("ledger.editExpense") : t("ledger.newExpense")}
+      </h3>
 
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
@@ -183,7 +191,7 @@ export default function ExpenseForm({ projectId, members, categories, onCreated,
 
       <div className="flex gap-3 pt-2">
         <button type="submit" disabled={busy} className="btn-primary">
-          {busy ? t("common.saving") : t("ledger.addExpense")}
+          {busy ? t("common.saving") : editingExpense ? t("common.save") : t("ledger.addExpense")}
         </button>
         <button
           type="button"
