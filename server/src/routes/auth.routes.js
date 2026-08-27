@@ -2,8 +2,14 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const db = require("../db");
 const { validateUsername, validatePassword } = require("../validators");
-const { setAuthCookie, clearAuthCookie, requireAuth } = require("../auth");
+const { setAuthCookie, clearAuthCookie, requireAuth, COOKIE_NAME } = require("../auth");
 const { parseSqliteUTC } = require("../utils");
+const {
+  listSessions,
+  revokeSession,
+  revokeOtherSessions,
+  revokeSessionByToken,
+} = require("../services/sessions");
 
 const router = express.Router();
 
@@ -40,7 +46,7 @@ router.post("/register", (req, res) => {
         "UPDATE users SET password_hash = ?, status = 'active', updated_at = datetime('now') WHERE id = ?"
       ).run(hash, existing.id);
       const reactivated = db.prepare("SELECT * FROM users WHERE id = ?").get(existing.id);
-      setAuthCookie(res, reactivated, false);
+      setAuthCookie(res, reactivated, false, req.get("user-agent"));
       return res.status(200).json({ user: publicUser(reactivated), status: "active", reactivated: true });
     }
     // status === 'rejected': se reenvía como nueva solicitud pendiente de aprobación.
@@ -85,13 +91,35 @@ router.post("/login", (req, res) => {
     });
   }
 
-  setAuthCookie(res, user, !!remember);
+  setAuthCookie(res, user, !!remember, req.get("user-agent"));
   return res.json({ user: publicUser(user) });
 });
 
 router.post("/logout", (req, res) => {
+  const token = req.cookies ? req.cookies[COOKIE_NAME] : null;
+  revokeSessionByToken(token);
   clearAuthCookie(res);
   res.json({ ok: true });
+});
+
+router.get("/sessions", requireAuth, (req, res) => {
+  const sessions = listSessions(req.user.id).map((s) => ({ ...s, current: s.id === req.sessionId }));
+  res.json({ sessions });
+});
+
+router.post("/sessions/:sessionId/revoke", requireAuth, (req, res) => {
+  const sessionId = Number(req.params.sessionId);
+  if (sessionId === req.sessionId) {
+    return res.status(400).json({ error: "Para cerrar tu sesión actual usá 'Salir'." });
+  }
+  const revoked = revokeSession(req.user.id, sessionId);
+  if (!revoked) return res.status(404).json({ error: "Sesión no encontrada." });
+  res.json({ ok: true });
+});
+
+router.post("/sessions/revoke-others", requireAuth, (req, res) => {
+  const count = revokeOtherSessions(req.user.id, req.sessionId);
+  res.json({ ok: true, revoked: count });
 });
 
 router.get("/me", requireAuth, (req, res) => {
@@ -113,6 +141,7 @@ router.post("/change-password", requireAuth, (req, res) => {
 
   const hash = bcrypt.hashSync(newPassword, 10);
   db.prepare("UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?").run(hash, user.id);
+  revokeOtherSessions(user.id, req.sessionId);
   res.json({ ok: true });
 });
 

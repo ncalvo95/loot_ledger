@@ -4,12 +4,14 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import LanguageToggle from "./LanguageToggle.jsx";
 import ChangePasswordModal from "./ChangePasswordModal.jsx";
+import SessionsModal from "./SessionsModal.jsx";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showSessions, setShowSessions] = useState(false);
 
   if (!user) return null;
 
@@ -42,6 +44,9 @@ export default function Navbar() {
           <button onClick={() => setShowChangePassword(true)} className="btn-ghost !px-2 !py-1">
             {t("nav.changePassword")}
           </button>
+          <button onClick={() => setShowSessions(true)} className="btn-ghost !px-2 !py-1">
+            {t("nav.sessions")}
+          </button>
           {user.role === "admin" && (
             <Link to="/admin" className="btn-ghost !px-2 !py-1">
               {t("nav.panel")}
@@ -53,6 +58,7 @@ export default function Navbar() {
         </nav>
       </div>
       {showChangePassword && <ChangePasswordModal onClose={() => setShowChangePassword(false)} />}
+      {showSessions && <SessionsModal onClose={() => setShowSessions(false)} />}
     </header>
   );
 }

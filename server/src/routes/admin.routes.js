@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const db = require("../db");
 const { validateUsername, validatePassword } = require("../validators");
 const { requireAuth, requireAdmin } = require("../auth");
+const { revokeAllSessionsForUser } = require("../services/sessions");
 
 const router = express.Router();
 router.use(requireAuth, requireAdmin);
@@ -81,6 +82,7 @@ router.post("/users/:id/reset-password", (req, res) => {
 
   const hash = bcrypt.hashSync(newPassword, 10);
   db.prepare("UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?").run(hash, user.id);
+  revokeAllSessionsForUser(user.id);
   res.json({ ok: true });
 });
 
@@ -94,6 +96,7 @@ router.post("/users/:id/remove", (req, res) => {
     return res.status(400).json({ error: "No podés eliminar tu propia cuenta desde el panel." });
   }
   db.prepare("UPDATE users SET status = 'removed', updated_at = datetime('now') WHERE id = ?").run(user.id);
+  revokeAllSessionsForUser(user.id);
   res.json({ ok: true });
 });
 
@@ -163,6 +166,7 @@ router.post("/password-reset-requests/:id/resolve", (req, res) => {
     ).run(req.user.id, request.id);
   });
   tx();
+  revokeAllSessionsForUser(request.user_id);
   res.json({ ok: true });
 });
 
