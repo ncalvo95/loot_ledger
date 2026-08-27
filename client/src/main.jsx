@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { LanguageProvider } from "./i18n/LanguageContext.jsx";
+import { InstallPromptProvider } from "./context/InstallPromptContext.jsx";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -11,7 +12,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <LanguageProvider>
         <AuthProvider>
-          <App />
+          <InstallPromptProvider>
+            <App />
+          </InstallPromptProvider>
         </AuthProvider>
       </LanguageProvider>
     </BrowserRouter>

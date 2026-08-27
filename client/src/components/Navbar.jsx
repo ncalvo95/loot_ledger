@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import { useInstallPrompt } from "../context/InstallPromptContext.jsx";
 import LanguageToggle from "./LanguageToggle.jsx";
 import ChangePasswordModal from "./ChangePasswordModal.jsx";
 import SessionsModal from "./SessionsModal.jsx";
@@ -9,6 +10,7 @@ import SessionsModal from "./SessionsModal.jsx";
 export default function Navbar() {
   const { user, logout } = useAuth();
   const { t } = useLanguage();
+  const { canInstall, promptInstall } = useInstallPrompt();
   const navigate = useNavigate();
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showSessions, setShowSessions] = useState(false);
@@ -38,6 +40,11 @@ export default function Navbar() {
             <span className="text-neon-green">●</span> {user.username}
             {user.role === "admin" && <span className="badge border-neon-purple/60 text-neon-purple ml-2">admin</span>}
           </span>
+          {canInstall && (
+            <button onClick={promptInstall} className="btn-primary !px-2 !py-1">
+              {t("nav.install")}
+            </button>
+          )}
           <Link to="/quests" className="btn-ghost !px-2 !py-1">
             {t("nav.quests")}
           </Link>

@@ -34,6 +34,7 @@ export const translations = {
       changePassword: "Cambiar contraseña",
       sessions: "Mis sesiones",
       quests: "Pending Quests",
+      install: "📲 Instalar app",
     },
     sessions: {
       title: "Sesiones activas",
@@ -250,6 +251,7 @@ export const translations = {
       changePassword: "Change password",
       sessions: "My sessions",
       quests: "Pending Quests",
+      install: "📲 Install app",
     },
     sessions: {
       title: "Active sessions",
