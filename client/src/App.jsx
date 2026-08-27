@@ -1,6 +1,7 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar.jsx";
+import UpdateBanner from "./components/UpdateBanner.jsx";
 import { ProtectedRoute, AdminRoute } from "./components/ProtectedRoute.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
@@ -51,6 +52,7 @@ export default function App() {
           }
         />
       </Routes>
+      <UpdateBanner />
     </>
   );
 }

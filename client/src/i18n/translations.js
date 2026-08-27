@@ -46,6 +46,10 @@ export const translations = {
       revokeOthers: "Cerrar todas las demás sesiones",
       confirmRevokeOthers: "¿Cerrar todas las demás sesiones? Vas a seguir conectado en este dispositivo.",
     },
+    update: {
+      available: "🔄 Hay una versión nueva de la app disponible.",
+      reload: "Actualizar ahora",
+    },
     auth: {
       login: "Iniciar sesión",
       loginCta: "Entrar",
@@ -263,6 +267,10 @@ export const translations = {
       revoke: "Log out",
       revokeOthers: "Log out all other sessions",
       confirmRevokeOthers: "Log out all other sessions? You'll stay signed in on this device.",
+    },
+    update: {
+      available: "🔄 A new version of the app is available.",
+      reload: "Update now",
     },
     auth: {
       login: "Log in",

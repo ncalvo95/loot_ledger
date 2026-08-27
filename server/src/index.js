@@ -40,6 +40,13 @@ app.use("/api/quests", questsRoutes);
 
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
+// Cambia cada vez que se reinicia el proceso (o sea, en cada "docker compose
+// up -d --build"). El frontend lo compara contra el valor que tenía al
+// cargar la página para avisar si alguien la dejó abierta de fondo mientras
+// se desplegaba una versión nueva.
+const BOOT_ID = String(Date.now());
+app.get("/api/version", (req, res) => res.json({ version: BOOT_ID }));
+
 const clientDist = path.join(__dirname, "..", "..", "client", "dist");
 if (fs.existsSync(clientDist)) {
   app.use(express.static(clientDist));
