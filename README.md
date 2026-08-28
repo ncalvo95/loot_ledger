@@ -11,7 +11,7 @@ La RPi 3B tiene solo 1 GB de RAM y una CPU modesta, así que se prioriza consumo
 - **Autenticación**: JWT en cookie httpOnly + `bcryptjs`.
 - **Exportación**: `exceljs`, genera `.xlsx` reales con tablas de Excel (no solo celdas sueltas).
 
-> Nota sobre monedas: se usan los códigos ISO 4217 válidos `EUR`, `USD` y `ARS` (el peso argentino es `ARS`, no `ARG`).
+> Nota sobre monedas: se usan los códigos ISO 4217 válidos `EUR`, `USD` y `ARS` (el peso argentino es `ARS`).
 
 ## Estructura del repo
 
