@@ -41,6 +41,9 @@ export default function ExpenseList({ projectId, expenses, canManage, currentUse
                 >
                   {e.categoryName}
                 </span>
+                {e.entityName && (
+                  <span className="badge border-neon-cyan/50 text-neon-cyan">{e.entityName}</span>
+                )}
               </div>
               <p className="text-xs text-slate-500 mt-1">
                 {e.date} · {t("ledger.paidByLine")} <span className="text-slate-300">{e.paidByUsername}</span> ·{" "}

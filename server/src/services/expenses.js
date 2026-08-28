@@ -1,10 +1,11 @@
 const db = require("../db");
 
 function listExpenses(projectId, { month, year } = {}) {
-  let sql = `SELECT e.*, u.username AS paid_by_username, c.name AS category_name
+  let sql = `SELECT e.*, u.username AS paid_by_username, c.name AS category_name, ent.name AS entity_name
              FROM expenses e
              JOIN users u ON u.id = e.paid_by
              JOIN categories c ON c.id = e.category_id
+             LEFT JOIN entities ent ON ent.id = e.entity_id
              WHERE e.project_id = ?`;
   const params = [projectId];
   if (year) {
@@ -48,6 +49,8 @@ function listExpenses(projectId, { month, year } = {}) {
     paidByUsername: row.paid_by_username,
     categoryId: row.category_id,
     categoryName: row.category_name,
+    entityId: row.entity_id,
+    entityName: row.entity_name,
     date: row.expense_date,
     createdBy: row.created_by,
     createdAt: row.created_at,

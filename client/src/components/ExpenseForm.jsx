@@ -12,10 +12,20 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export default function ExpenseForm({ projectId, members, categories, editingExpense, onCreated, onCancel }) {
+export default function ExpenseForm({
+  projectId,
+  members,
+  categories,
+  entities,
+  editingExpense,
+  onCreated,
+  onCancel,
+}) {
   const { t, tError } = useLanguage();
   const [categoryId, setCategoryId] = useState(editingExpense?.categoryId || categories[0]?.id || "");
   const [newCategory, setNewCategory] = useState("");
+  const [entityId, setEntityId] = useState(editingExpense?.entityId || "");
+  const [newEntity, setNewEntity] = useState("");
   const [title, setTitle] = useState(editingExpense?.title || "");
   const [currency, setCurrency] = useState(editingExpense?.currency || "EUR");
   const [amount, setAmount] = useState(editingExpense ? String(editingExpense.amount) : "");
@@ -35,6 +45,8 @@ export default function ExpenseForm({ projectId, members, categories, editingExp
     setTitle("");
     setAmount("");
     setNewCategory("");
+    setEntityId("");
+    setNewEntity("");
     setParticipantIds(members.map((m) => m.id));
     setDate(today());
     setError("");
@@ -61,6 +73,11 @@ export default function ExpenseForm({ projectId, members, categories, editingExp
         payload.categoryName = newCategory.trim();
       } else {
         payload.categoryId = Number(categoryId);
+      }
+      if (newEntity.trim()) {
+        payload.entityName = newEntity.trim();
+      } else if (entityId) {
+        payload.entityId = Number(entityId);
       }
       if (editingExpense) {
         await api.put(`/projects/${projectId}/expenses/${editingExpense.id}`, payload);
@@ -105,6 +122,32 @@ export default function ExpenseForm({ projectId, members, categories, editingExp
             placeholder={t("ledger.newCategoryPlaceholder")}
             value={newCategory}
             onChange={(e) => setNewCategory(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="label">{t("ledger.entity")}</label>
+          <select
+            className="field"
+            value={newEntity ? "" : entityId}
+            onChange={(e) => {
+              setEntityId(e.target.value);
+              setNewEntity("");
+            }}
+            disabled={!!newEntity}
+          >
+            <option value="">{t("ledger.noEntity")}</option>
+            {entities.map((ent) => (
+              <option key={ent.id} value={ent.id}>
+                {ent.name}
+              </option>
+            ))}
+          </select>
+          <input
+            className="field mt-2"
+            placeholder={t("ledger.newEntityPlaceholder")}
+            value={newEntity}
+            onChange={(e) => setNewEntity(e.target.value)}
           />
         </div>
 

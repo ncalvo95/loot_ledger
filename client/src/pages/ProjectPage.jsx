@@ -6,6 +6,7 @@ import { useLanguage } from "../i18n/LanguageContext.jsx";
 import ExpenseForm from "../components/ExpenseForm.jsx";
 import ExpenseList from "../components/ExpenseList.jsx";
 import CategoriesPanel from "../components/CategoriesPanel.jsx";
+import EntitiesPanel from "../components/EntitiesPanel.jsx";
 import BalanceView from "../components/BalanceView.jsx";
 import MembersPanel from "../components/MembersPanel.jsx";
 import ExportPanel from "../components/ExportPanel.jsx";
@@ -116,6 +117,12 @@ export default function ProjectPage() {
             onChanged={() => Promise.all([loadDetail(), refreshAll()])}
           />
 
+          <EntitiesPanel
+            projectId={id}
+            entities={detail.entities}
+            onChanged={() => Promise.all([loadDetail(), refreshAll()])}
+          />
+
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <input
@@ -165,6 +172,7 @@ export default function ProjectPage() {
               projectId={id}
               members={memberOptions}
               categories={detail.categories}
+              entities={detail.entities}
               editingExpense={editingExpense}
               onCreated={async () => {
                 setShowForm(false);

@@ -94,11 +94,13 @@ router.get("/:id", loadProject, requireProjectAccess, (req, res) => {
   const categories = db
     .prepare("SELECT * FROM categories WHERE project_id = ? ORDER BY is_default DESC, name ASC")
     .all(req.project.id);
+  const entities = db.prepare("SELECT * FROM entities WHERE project_id = ? ORDER BY name ASC").all(req.project.id);
   const myRole = getMemberRole(req.project.id, req.user.id);
   res.json({
     project: req.project,
     members,
     categories,
+    entities,
     isOwner: isProjectOwner(req.project, req.user.id) || req.user.role === "admin",
     canManage: canManageProject(req.project, req),
     myRole,

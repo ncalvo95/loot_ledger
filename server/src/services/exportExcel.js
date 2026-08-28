@@ -15,6 +15,7 @@ function buildExportWorkbook({ project, expenses, balances, filterLabel }) {
     { width: 12 },
     { width: 28 },
     { width: 18 },
+    { width: 18 },
     { width: 10 },
     { width: 14 },
     { width: 18 },
@@ -29,6 +30,7 @@ function buildExportWorkbook({ project, expenses, balances, filterLabel }) {
     e.date,
     e.title,
     e.categoryName,
+    e.entityName || "",
     e.currency,
     e.amount,
     e.paidByUsername,
@@ -45,12 +47,13 @@ function buildExportWorkbook({ project, expenses, balances, filterLabel }) {
       { name: "Fecha" },
       { name: "Título" },
       { name: "Categoría" },
+      { name: "Entidad" },
       { name: "Moneda" },
       { name: "Importe", filterButton: true },
       { name: "Pagado por" },
       { name: "Para (participante y monto)" },
     ],
-    rows: expenseRows.length ? expenseRows : [["", "", "", "", "", "", ""]],
+    rows: expenseRows.length ? expenseRows : [["", "", "", "", "", "", "", ""]],
   });
 
   const balancesSheet = workbook.addWorksheet("Balances");

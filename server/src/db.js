@@ -123,10 +123,19 @@ CREATE TABLE IF NOT EXISTS categories (
   UNIQUE(project_id, name)
 );
 
+CREATE TABLE IF NOT EXISTS entities (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(project_id, name)
+);
+
 CREATE TABLE IF NOT EXISTS expenses (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   category_id INTEGER NOT NULL REFERENCES categories(id),
+  entity_id INTEGER REFERENCES entities(id),
   title TEXT NOT NULL,
   currency TEXT NOT NULL CHECK (currency IN ('EUR','USD','ARS')),
   amount_cents INTEGER NOT NULL,
@@ -171,6 +180,21 @@ CREATE INDEX IF NOT EXISTS idx_project_members_user ON project_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_password_reset_requests_user ON password_reset_requests(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 `);
+
+// Migra instalaciones existentes: la tabla "expenses" ya existía sin la
+// columna "entity_id" (CREATE TABLE IF NOT EXISTS de arriba no la agrega
+// sola en una base que ya tiene la tabla). ALTER TABLE ADD COLUMN con
+// REFERENCES sí está permitido en SQLite mientras no tenga un DEFAULT
+// no constante, así que alcanza con esto (a diferencia del caso de
+// "users", acá no hace falta reconstruir la tabla entera).
+function migrateAddEntityToExpenses() {
+  if (!tableExists("expenses")) return;
+  const row = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='expenses'").get();
+  if (row.sql.includes("entity_id")) return;
+  db.exec("ALTER TABLE expenses ADD COLUMN entity_id INTEGER REFERENCES entities(id)");
+}
+
+migrateAddEntityToExpenses();
 
 function seedAdmin() {
   const existing = db.prepare("SELECT id FROM users WHERE username = ?").get("administrator");
