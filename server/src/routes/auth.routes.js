@@ -6,6 +6,7 @@ const { setAuthCookie, clearAuthCookie, requireAuth, COOKIE_NAME } = require("..
 const { parseSqliteUTC } = require("../utils");
 const {
   listSessions,
+  renameSession,
   revokeSession,
   revokeOtherSessions,
   revokeSessionByToken,
@@ -114,6 +115,20 @@ router.post("/sessions/:sessionId/revoke", requireAuth, (req, res) => {
   }
   const revoked = revokeSession(req.user.id, sessionId);
   if (!revoked) return res.status(404).json({ error: "Sesión no encontrada." });
+  res.json({ ok: true });
+});
+
+router.post("/sessions/:sessionId/rename", requireAuth, (req, res) => {
+  const sessionId = Number(req.params.sessionId);
+  const { label } = req.body || {};
+  if (typeof label !== "string") {
+    return res.status(400).json({ error: "Falta el nombre." });
+  }
+  if (label.trim().length > 60) {
+    return res.status(400).json({ error: "El nombre es demasiado largo (máximo 60 caracteres)." });
+  }
+  const renamed = renameSession(req.user.id, sessionId, label);
+  if (!renamed) return res.status(404).json({ error: "Sesión no encontrada." });
   res.json({ ok: true });
 });
 

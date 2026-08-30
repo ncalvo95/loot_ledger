@@ -167,6 +167,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   token_hash TEXT NOT NULL UNIQUE,
   user_agent TEXT,
+  label TEXT,
   remember INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   last_seen_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -195,6 +196,19 @@ function migrateAddEntityToExpenses() {
 }
 
 migrateAddEntityToExpenses();
+
+// Igual que arriba, pero para "sessions": las bases ya desplegadas no
+// tienen la columna "label" (nombre personalizado que el usuario le pone
+// a una sesion/dispositivo). Sin DEFAULT no constante, ALTER TABLE ADD
+// COLUMN alcanza.
+function migrateAddLabelToSessions() {
+  if (!tableExists("sessions")) return;
+  const row = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='sessions'").get();
+  if (row.sql.includes("label")) return;
+  db.exec("ALTER TABLE sessions ADD COLUMN label TEXT");
+}
+
+migrateAddLabelToSessions();
 
 function seedAdmin() {
   const existing = db.prepare("SELECT id FROM users WHERE username = ?").get("administrator");

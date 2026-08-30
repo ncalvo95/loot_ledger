@@ -48,6 +48,7 @@ export const translations = {
       revoke: "Cerrar",
       revokeOthers: "Cerrar todas las demás sesiones",
       confirmRevokeOthers: "¿Cerrar todas las demás sesiones? Vas a seguir conectado en este dispositivo.",
+      rename: "Renombrar",
     },
     update: {
       available: "🔄 Hay una versión nueva de la app disponible.",
@@ -291,6 +292,7 @@ export const translations = {
       revoke: "Log out",
       revokeOthers: "Log out all other sessions",
       confirmRevokeOthers: "Log out all other sessions? You'll stay signed in on this device.",
+      rename: "Rename",
     },
     update: {
       available: "🔄 A new version of the app is available.",

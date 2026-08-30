@@ -14,6 +14,8 @@ export default function SessionsModal({ onClose }) {
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(null);
   const [busyAll, setBusyAll] = useState(false);
+  const [renamingId, setRenamingId] = useState(null);
+  const [renameValue, setRenameValue] = useState("");
 
   const load = async () => {
     const data = await api.get("/auth/sessions");
@@ -29,6 +31,26 @@ export default function SessionsModal({ onClose }) {
     setBusyId(id);
     try {
       await api.post(`/auth/sessions/${id}/revoke`);
+      await load();
+    } catch (err) {
+      setError(tError(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const startRename = (s) => {
+    setError("");
+    setRenamingId(s.id);
+    setRenameValue(s.customLabel || "");
+  };
+
+  const saveRename = async (id) => {
+    setError("");
+    setBusyId(id);
+    try {
+      await api.post(`/auth/sessions/${id}/rename`, { label: renameValue });
+      setRenamingId(null);
       await load();
     } catch (err) {
       setError(tError(err));
@@ -75,25 +97,59 @@ export default function SessionsModal({ onClose }) {
                   key={s.id}
                   className="flex items-center justify-between gap-3 bg-ink-800/40 rounded-lg px-3 py-2"
                 >
-                  <div className="min-w-0">
-                    <p className="text-sm text-slate-200 flex items-center gap-2 flex-wrap">
-                      {s.label}
-                      {s.current && (
-                        <span className="badge border-neon-green/60 text-neon-green">
-                          {t("sessions.thisDevice")}
-                        </span>
-                      )}
-                      {!!s.remember && (
-                        <span className="badge border-neon-purple/50 text-neon-purple">
-                          {t("sessions.remembered")}
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {t("sessions.lastSeen")} {formatDate(s.last_seen_at)}
-                    </p>
+                  <div className="min-w-0 flex-1">
+                    {renamingId === s.id ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          className="field !py-1 text-sm"
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          placeholder={s.autoLabel}
+                          maxLength={60}
+                          autoFocus
+                        />
+                        <button
+                          className="btn-primary !px-2 !py-1 text-[10px] shrink-0"
+                          disabled={busyId === s.id}
+                          onClick={() => saveRename(s.id)}
+                        >
+                          {t("common.save")}
+                        </button>
+                        <button
+                          className="btn-secondary !px-2 !py-1 text-[10px] shrink-0"
+                          onClick={() => setRenamingId(null)}
+                        >
+                          {t("common.cancel")}
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-sm text-slate-200 flex items-center gap-2 flex-wrap">
+                          {s.label}
+                          {s.current && (
+                            <span className="badge border-neon-green/60 text-neon-green">
+                              {t("sessions.thisDevice")}
+                            </span>
+                          )}
+                          {!!s.remember && (
+                            <span className="badge border-neon-purple/50 text-neon-purple">
+                              {t("sessions.remembered")}
+                            </span>
+                          )}
+                          <button
+                            className="text-slate-500 hover:text-neon-cyan text-[10px] underline"
+                            onClick={() => startRename(s)}
+                          >
+                            {t("sessions.rename")}
+                          </button>
+                        </p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {t("sessions.lastSeen")} {formatDate(s.last_seen_at)}
+                        </p>
+                      </>
+                    )}
                   </div>
-                  {!s.current && (
+                  {!s.current && renamingId !== s.id && (
                     <button
                       className="btn-danger !px-2 !py-1 text-[10px] shrink-0"
                       disabled={busyId === s.id}
