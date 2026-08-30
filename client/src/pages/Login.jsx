@@ -40,7 +40,7 @@ export default function Login() {
       </div>
       <div className="panel w-full max-w-sm p-8 shadow-neon">
         <div className="text-center mb-6">
-          <div className="text-4xl mb-2">🕹️</div>
+          <img src="/icons/icon-512.png" alt="" className="w-16 h-16 mx-auto mb-2 rounded-xl" />
           <h1 className="title-glow text-2xl">{t("appName")}</h1>
           <p className="text-slate-400 text-sm mt-1">{t("auth.login")}</p>
         </div>
