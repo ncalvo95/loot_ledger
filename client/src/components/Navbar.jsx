@@ -100,8 +100,10 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop: todo en una fila */}
-        <nav className="hidden md:flex items-center gap-3 text-sm shrink-0">
+        {/* Desktop: todo en una fila (a partir de xl, para que la fila de
+            botones del admin -que suma "Panel"- no se quede sin espacio y
+            aplaste el logo en anchos intermedios tipo tablet/notebook) */}
+        <nav className="hidden xl:flex items-center gap-3 text-sm shrink-0">
           <LanguageToggle />
           <span className="text-slate-400 font-mono text-xs">
             <span className="text-neon-green">●</span> {user.username}
@@ -114,8 +116,8 @@ export default function Navbar() {
           ))}
         </nav>
 
-        {/* Mobile: solo el toggle de idioma + botón de menú */}
-        <div className="flex items-center gap-2 md:hidden shrink-0">
+        {/* Mobile/tablet: solo el toggle de idioma + botón de menú */}
+        <div className="flex items-center gap-2 xl:hidden shrink-0">
           <LanguageToggle />
           <button
             onClick={() => setMobileOpen((o) => !o)}
@@ -128,7 +130,7 @@ export default function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden border-t border-ink-700 px-4 py-3 space-y-2 bg-ink-950/95">
+        <div className="xl:hidden border-t border-ink-700 px-4 py-3 space-y-2 bg-ink-950/95">
           <div className="text-slate-400 font-mono text-xs pb-1">
             <span className="text-neon-green">●</span> {user.username}
             {user.role === "admin" && (
