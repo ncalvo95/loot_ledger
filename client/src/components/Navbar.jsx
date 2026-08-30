@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { useInstallPrompt } from "../context/InstallPromptContext.jsx";
 import LanguageToggle from "./LanguageToggle.jsx";
+import StyleToggle from "./StyleToggle.jsx";
 import ChangePasswordModal from "./ChangePasswordModal.jsx";
 import SessionsModal from "./SessionsModal.jsx";
 
@@ -89,7 +90,12 @@ export default function Navbar() {
 
   return (
     <header className="border-b border-ink-700 bg-ink-950/90 backdrop-blur sticky top-0 z-20">
-      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      {/* Barra completa, sin max-w como el resto de la app: con el toggle de
+          idioma + el de estilo + todos los botones del admin (+ etiquetas
+          largas en modo Simple, como "Pending balances"), un contenedor con
+          techo fijo se queda sin margen -- mejor que la fila crezca con la
+          pantalla y listo. */}
+      <div className="px-4 py-3 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 min-w-0">
           <img src="/icons/icon-192.png" alt="" className="w-6 h-6 rounded-md shrink-0" />
           <span
@@ -100,11 +106,11 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop: todo en una fila (a partir de xl, para que la fila de
-            botones del admin -que suma "Panel"- no se quede sin espacio y
-            aplaste el logo en anchos intermedios tipo tablet/notebook) */}
-        <nav className="hidden xl:flex items-center gap-3 text-sm shrink-0">
+        {/* Desktop: todo en una fila (a partir de 2xl, con margen real
+            incluso con las etiquetas mas largas del modo Simple) */}
+        <nav className="hidden 2xl:flex items-center gap-3 text-sm shrink-0">
           <LanguageToggle />
+          <StyleToggle />
           <span className="text-slate-400 font-mono text-xs">
             <span className="text-neon-green">●</span> {user.username}
             {user.role === "admin" && (
@@ -117,7 +123,7 @@ export default function Navbar() {
         </nav>
 
         {/* Mobile/tablet: solo el toggle de idioma + botón de menú */}
-        <div className="flex items-center gap-2 xl:hidden shrink-0">
+        <div className="flex items-center gap-2 2xl:hidden shrink-0">
           <LanguageToggle />
           <button
             onClick={() => setMobileOpen((o) => !o)}
@@ -130,13 +136,14 @@ export default function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div className="xl:hidden border-t border-ink-700 px-4 py-3 space-y-2 bg-ink-950/95">
+        <div className="2xl:hidden border-t border-ink-700 px-4 py-3 space-y-2 bg-ink-950/95">
           <div className="text-slate-400 font-mono text-xs pb-1">
             <span className="text-neon-green">●</span> {user.username}
             {user.role === "admin" && (
               <span className="badge border-neon-purple/60 text-neon-purple ml-2">admin</span>
             )}
           </div>
+          <StyleToggle className="mb-1" />
           {items.map((it) => (
             <div key={it.key}>{it.node("w-full !justify-start")}</div>
           ))}

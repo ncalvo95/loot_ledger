@@ -36,6 +36,8 @@ export const translations = {
       quests: "Bounties",
       install: "📲 Instalar app",
       menu: "Menú",
+      styleGamer: "Gamer",
+      styleSimple: "Simple",
     },
     sessions: {
       title: "Sesiones activas",
@@ -94,10 +96,10 @@ export const translations = {
       noProjects: "Todavía no formás parte de ningún proyecto.",
       owner: "Dueño",
       members: "miembro(s)",
-      newProject: "Nuevo proyecto",
+      newProject: "Nueva Quest",
       projectName: "Nombre",
       projectNamePlaceholder: "Ej: Viaje a la Costa",
-      createProject: "+ Crear proyecto",
+      createProject: "+ Crear Quest",
       viewOnly: "solo vista (admin)",
     },
     project: {
@@ -276,6 +278,8 @@ export const translations = {
       quests: "Bounties",
       install: "📲 Install app",
       menu: "Menu",
+      styleGamer: "Gamer",
+      styleSimple: "Simple",
     },
     sessions: {
       title: "Active sessions",
@@ -333,10 +337,10 @@ export const translations = {
       noProjects: "You're not part of any project yet.",
       owner: "Owner",
       members: "member(s)",
-      newProject: "New project",
+      newProject: "New Quest",
       projectName: "Name",
       projectNamePlaceholder: "E.g: Beach Trip",
-      createProject: "+ Create project",
+      createProject: "+ Create Quest",
       viewOnly: "view only (admin)",
     },
     project: {
@@ -476,6 +480,91 @@ export const translations = {
       REMOVED: "This account was removed. You can register again with the same username.",
       WRONG_CURRENT_PASSWORD: "Current password is incorrect.",
       RATE_LIMITED: "You already requested a reset. Try again later.",
+    },
+  },
+
+  // Diccionarios de "modo simple": solo incluyen los textos con onda gamer
+  // que tienen un equivalente mas formal/neutro. Todo lo que no aparece aca
+  // (botones, formularios, mensajes de error, etc.) ya es entendible sin
+  // contexto gamer y se toma del diccionario normal de arriba.
+  es_simple: {
+    nav: {
+      quests: "Pendientes",
+    },
+    auth: {
+      createCharacter: "Crear cuenta",
+    },
+    dashboard: {
+      title: "Tus gastos compartidos",
+      subtitle: "Elegí un proyecto para ver los gastos y los balances, o creá uno nuevo.",
+      yourProjects: "Tus proyectos",
+      allProjects: "Todos los proyectos (vista de administrador)",
+      newProject: "Nuevo proyecto",
+      createProject: "+ Crear proyecto",
+    },
+    project: {
+      ledger: "Gastos",
+      loot: "Balances",
+      team: "Miembros",
+    },
+    ledger: {
+      addExpense: "Agregar gasto",
+      empty: "Todavía no hay gastos registrados.",
+    },
+    loot: {
+      empty: "Todavía no hay gastos para calcular los balances.",
+      evenSteven: "sin saldo pendiente",
+    },
+    team: {
+      title: "Miembros",
+      addPlayer: "Invitar miembro",
+      confirmRemove: "¿Quitar a este miembro del proyecto? Su historial de gastos se conserva.",
+    },
+    quests: {
+      title: "Pendientes",
+      questComplete: "Marcar como pagado",
+      cantSettle: "No se puede saldar automáticamente (algún miembro ya no está activo en el proyecto).",
+      empty: "No hay pagos pendientes.",
+    },
+  },
+  en_simple: {
+    nav: {
+      quests: "Pending balances",
+    },
+    auth: {
+      createCharacter: "Create account",
+    },
+    dashboard: {
+      title: "Your shared expenses",
+      subtitle: "Pick a project to see its expenses and balances, or create a new one.",
+      yourProjects: "Your projects",
+      allProjects: "All projects (admin view)",
+      newProject: "New project",
+      createProject: "+ Create project",
+    },
+    project: {
+      ledger: "Expenses",
+      loot: "Balances",
+      team: "Members",
+    },
+    ledger: {
+      addExpense: "Add expense",
+      empty: "No expenses logged yet.",
+    },
+    loot: {
+      empty: "No expenses yet to calculate the balances.",
+      evenSteven: "all settled",
+    },
+    team: {
+      title: "Members",
+      addPlayer: "Invite member",
+      confirmRemove: "Remove this member from the project? Their expense history is kept.",
+    },
+    quests: {
+      title: "Pending balances",
+      questComplete: "Mark as paid",
+      cantSettle: "Can't settle automatically (one of the members is no longer active in the project).",
+      empty: "No pending balances.",
     },
   },
 };
