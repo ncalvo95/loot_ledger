@@ -5,6 +5,7 @@ import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { useInstallPrompt } from "../context/InstallPromptContext.jsx";
 import LanguageToggle from "./LanguageToggle.jsx";
 import StyleToggle from "./StyleToggle.jsx";
+import AccountMenu from "./AccountMenu.jsx";
 import ChangePasswordModal from "./ChangePasswordModal.jsx";
 import SessionsModal from "./SessionsModal.jsx";
 
@@ -25,7 +26,11 @@ export default function Navbar() {
     navigate("/login");
   };
 
-  const items = [
+  // Links de navegacion "primarios": van sueltos en la barra, tanto en
+  // desktop como en el menu mobile. Todo lo que es cuenta/preferencias
+  // (idioma, modo gamer/simple, contraseña, sesiones, logout) vive aparte
+  // en el dropdown/seccion "Consola".
+  const primaryItems = [
     canInstall && {
       key: "install",
       node: (cls) => (
@@ -42,60 +47,19 @@ export default function Navbar() {
         </Link>
       ),
     },
-    {
-      key: "changePassword",
-      node: (cls) => (
-        <button
-          onClick={() => {
-            setShowChangePassword(true);
-            setMobileOpen(false);
-          }}
-          className={`btn-ghost ${cls}`}
-        >
-          {t("nav.changePassword")}
-        </button>
-      ),
-    },
-    {
-      key: "sessions",
-      node: (cls) => (
-        <button
-          onClick={() => {
-            setShowSessions(true);
-            setMobileOpen(false);
-          }}
-          className={`btn-ghost ${cls}`}
-        >
-          {t("nav.sessions")}
-        </button>
-      ),
-    },
     user.role === "admin" && {
-      key: "panel",
+      key: "admin",
       node: (cls) => (
         <Link to="/admin" onClick={() => setMobileOpen(false)} className={`btn-ghost ${cls}`}>
-          {t("nav.panel")}
+          {t("nav.admin")}
         </Link>
-      ),
-    },
-    {
-      key: "logout",
-      node: (cls) => (
-        <button onClick={handleLogout} className={`btn-ghost ${cls}`}>
-          {t("nav.logout")}
-        </button>
       ),
     },
   ].filter(Boolean);
 
   return (
     <header className="border-b border-ink-700 bg-ink-950/90 backdrop-blur sticky top-0 z-20">
-      {/* Barra completa, sin max-w como el resto de la app: con el toggle de
-          idioma + el de estilo + todos los botones del admin (+ etiquetas
-          largas en modo Simple, como "Pending balances"), un contenedor con
-          techo fijo se queda sin margen -- mejor que la fila crezca con la
-          pantalla y listo. */}
-      <div className="px-4 py-3 flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 min-w-0">
           <img src="/icons/icon-192.png" alt="" className="w-6 h-6 rounded-md shrink-0" />
           <span
@@ -106,25 +70,27 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop: todo en una fila (a partir de 2xl, con margen real
-            incluso con las etiquetas mas largas del modo Simple) */}
-        <nav className="hidden 2xl:flex items-center gap-3 text-sm shrink-0">
-          <LanguageToggle />
-          <StyleToggle />
+        {/* Desktop: brand + links primarios + un solo dropdown de cuenta,
+            en vez de un boton suelto por cada accion */}
+        <nav className="hidden md:flex items-center gap-3 text-sm shrink-0">
           <span className="text-slate-400 font-mono text-xs">
             <span className="text-neon-green">●</span> {user.username}
             {user.role === "admin" && (
               <span className="badge border-neon-purple/60 text-neon-purple ml-2">admin</span>
             )}
           </span>
-          {items.map((it) => (
+          {primaryItems.map((it) => (
             <React.Fragment key={it.key}>{it.node("!px-2 !py-1")}</React.Fragment>
           ))}
+          <AccountMenu
+            onChangePassword={() => setShowChangePassword(true)}
+            onSessions={() => setShowSessions(true)}
+            onLogout={handleLogout}
+          />
         </nav>
 
-        {/* Mobile/tablet: solo el toggle de idioma + botón de menú */}
-        <div className="flex items-center gap-2 2xl:hidden shrink-0">
-          <LanguageToggle />
+        {/* Mobile/tablet: solo el botón de menú */}
+        <div className="flex items-center gap-2 md:hidden shrink-0">
           <button
             onClick={() => setMobileOpen((o) => !o)}
             className="btn-ghost !px-2 !py-1 text-lg leading-none"
@@ -136,17 +102,51 @@ export default function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div className="2xl:hidden border-t border-ink-700 px-4 py-3 space-y-2 bg-ink-950/95">
-          <div className="text-slate-400 font-mono text-xs pb-1">
+        <div className="md:hidden border-t border-ink-700 px-4 py-3 space-y-3 bg-ink-950/95">
+          <div className="text-slate-400 font-mono text-xs">
             <span className="text-neon-green">●</span> {user.username}
             {user.role === "admin" && (
               <span className="badge border-neon-purple/60 text-neon-purple ml-2">admin</span>
             )}
           </div>
-          <StyleToggle className="mb-1" />
-          {items.map((it) => (
-            <div key={it.key}>{it.node("w-full !justify-start")}</div>
-          ))}
+
+          <div className="space-y-2">
+            {primaryItems.map((it) => (
+              <div key={it.key}>{it.node("w-full !justify-start")}</div>
+            ))}
+          </div>
+
+          <div className="border-t border-ink-700 pt-3 space-y-2">
+            <p className="text-[10px] uppercase tracking-widest text-slate-500">{t("nav.console")}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <LanguageToggle />
+              <StyleToggle />
+            </div>
+            <button
+              onClick={() => {
+                setShowChangePassword(true);
+                setMobileOpen(false);
+              }}
+              className="btn-ghost w-full !justify-start !px-2 !py-1.5"
+            >
+              {t("nav.changePassword")}
+            </button>
+            <button
+              onClick={() => {
+                setShowSessions(true);
+                setMobileOpen(false);
+              }}
+              className="btn-ghost w-full !justify-start !px-2 !py-1.5"
+            >
+              {t("nav.sessions")}
+            </button>
+          </div>
+
+          <div className="border-t border-ink-700 pt-3">
+            <button onClick={handleLogout} className="btn-ghost w-full !justify-start !px-2 !py-1.5 text-neon-red">
+              {t("nav.logout")}
+            </button>
+          </div>
         </div>
       )}
 

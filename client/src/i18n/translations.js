@@ -28,7 +28,8 @@ export const translations = {
       error: "Ocurrió un error.",
     },
     nav: {
-      panel: "Panel",
+      admin: "Admin",
+      console: "Consola",
       logout: "Salir",
       myAccount: "Mi cuenta",
       changePassword: "Cambiar contraseña",
@@ -270,7 +271,8 @@ export const translations = {
       error: "Something went wrong.",
     },
     nav: {
-      panel: "Panel",
+      admin: "Admin",
+      console: "Console",
       logout: "Log out",
       myAccount: "My account",
       changePassword: "Change password",
@@ -490,6 +492,7 @@ export const translations = {
   es_simple: {
     nav: {
       quests: "Pendientes",
+      console: "Configuración",
     },
     auth: {
       createCharacter: "Crear cuenta",
@@ -530,6 +533,7 @@ export const translations = {
   en_simple: {
     nav: {
       quests: "Pending balances",
+      console: "Settings",
     },
     auth: {
       createCharacter: "Create account",
