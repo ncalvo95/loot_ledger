@@ -4,6 +4,7 @@ const db = require("../db");
 const { validateUsername, validatePassword } = require("../validators");
 const { requireAuth, requireAdmin } = require("../auth");
 const { revokeAllSessionsForUser } = require("../services/sessions");
+const { getUserFootprint, canHardDeleteUser, hardDeleteUser, canPurgeProject, purgeProject } = require("../services/userCleanup");
 
 const router = express.Router();
 router.use(requireAuth, requireAdmin);
@@ -100,6 +101,38 @@ router.post("/users/:id/remove", (req, res) => {
   res.json({ ok: true });
 });
 
+router.get("/users/:id/footprint", (req, res) => {
+  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
+  if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
+  const footprint = getUserFootprint(user.id);
+  res.json({ ...footprint, canPurge: canHardDeleteUser(user.id) });
+});
+
+// Borrado definitivo (no soft-delete): solo si el usuario ya está "eliminado"
+// y no le queda ningún rastro financiero en ningún proyecto. Si comparte
+// gastos con alguien más, esto se rechaza explícitamente para no descuadrar
+// a nadie -- ese caso se queda en el "Eliminar" (soft) de siempre.
+router.post("/users/:id/purge", (req, res) => {
+  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
+  if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
+  if (user.username === "administrator") {
+    return res.status(400).json({ error: "No se puede eliminar al administrador principal." });
+  }
+  if (user.id === req.user.id) {
+    return res.status(400).json({ error: "No podés eliminarte a vos mismo." });
+  }
+  if (user.status !== "removed") {
+    return res.status(400).json({ error: "Primero eliminá al usuario antes de poder borrarlo definitivamente." });
+  }
+  if (!canHardDeleteUser(user.id)) {
+    return res.status(400).json({
+      error: "Este usuario todavía tiene gastos o proyectos asociados; no se puede borrar por completo sin afectar a otros miembros.",
+    });
+  }
+  hardDeleteUser(user.id);
+  res.json({ ok: true });
+});
+
 router.post("/users/:id/reactivate", (req, res) => {
   const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
   if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
@@ -167,6 +200,23 @@ router.post("/password-reset-requests/:id/resolve", (req, res) => {
   });
   tx();
   revokeAllSessionsForUser(request.user_id);
+  res.json({ ok: true });
+});
+
+// Borrado definitivo de un proyecto: solo si ya no le queda ningún
+// miembro activo ni invitación pendiente (todos fueron dados de baja
+// antes). Ahí se borra todo -- gastos, categorías, entidades, el
+// proyecto en sí -- y de paso se purgan también los ex-miembros que
+// hayan quedado sin ningún otro rastro financiero en el servidor.
+router.post("/projects/:id/purge", (req, res) => {
+  const project = db.prepare("SELECT * FROM projects WHERE id = ?").get(req.params.id);
+  if (!project) return res.status(404).json({ error: "Proyecto no encontrado." });
+  if (!canPurgeProject(project.id)) {
+    return res.status(400).json({
+      error: "Todavía hay miembros activos o invitaciones pendientes en este proyecto; no se puede borrar por completo.",
+    });
+  }
+  purgeProject(project.id);
   res.json({ ok: true });
 });
 

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import PasswordInput from "../components/PasswordInput.jsx";
+import PurgeConfirmModal from "../components/PurgeConfirmModal.jsx";
 
 const PASSWORD_RULE = /^[A-Za-z0-9._-]{6,16}$/;
 const USERNAME_RULE = /^[A-Za-z0-9._-]{4,10}$/;
@@ -27,7 +28,10 @@ export default function AdminPanel() {
   const { t, tError } = useLanguage();
   const [tab, setTab] = useState("pending");
   const [users, setUsers] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [resetRequests, setResetRequests] = useState([]);
+  const [purgeUserTarget, setPurgeUserTarget] = useState(null);
+  const [purgeProjectTarget, setPurgeProjectTarget] = useState(null);
   const [selectedPending, setSelectedPending] = useState(new Set());
   const [error, setError] = useState("");
 
@@ -48,10 +52,15 @@ export default function AdminPanel() {
     const data = await api.get("/admin/password-reset-requests");
     setResetRequests(data.requests);
   };
+  const loadProjects = async () => {
+    const data = await api.get("/projects");
+    setProjects(data.active);
+  };
 
   const refreshAll = () => {
     loadUsers();
     loadResetRequests();
+    loadProjects();
   };
 
   useEffect(() => {
@@ -193,6 +202,7 @@ export default function AdminPanel() {
   const TABS = [
     { key: "pending", label: t("admin.tabs.pending"), badge: pendingUsers.length },
     { key: "users", label: t("admin.tabs.users") },
+    { key: "projects", label: t("admin.tabs.projects") },
     { key: "resets", label: t("admin.tabs.resets"), badge: resetRequests.length },
   ];
 
@@ -358,14 +368,44 @@ export default function AdminPanel() {
                       {t("common.remove")}
                     </button>
                   ) : (
-                    <button className="btn-primary !px-3 !py-1.5" onClick={() => reactivateUser(u)}>
-                      {t("admin.reactivate")}
-                    </button>
+                    <>
+                      <button className="btn-primary !px-3 !py-1.5" onClick={() => reactivateUser(u)}>
+                        {t("admin.reactivate")}
+                      </button>
+                      <button
+                        className="btn-danger !px-3 !py-1.5 border-neon-red/80"
+                        onClick={() => setPurgeUserTarget(u)}
+                      >
+                        {t("admin.purge")}
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {tab === "projects" && (
+        <div className="panel divide-y divide-ink-700">
+          {projects.length === 0 ? (
+            <p className="text-slate-500 text-sm p-5">{t("admin.noProjects")}</p>
+          ) : (
+            projects.map((p) => (
+              <div key={p.id} className="p-4 flex items-center justify-between flex-wrap gap-3">
+                <div>
+                  <p className="font-semibold">{p.name}</p>
+                  <p className="text-xs text-slate-500">
+                    {t("admin.projectOwner")}: {p.owner_username} · {t("admin.projectMembers")}: {p.member_count}
+                  </p>
+                </div>
+                <button className="btn-danger !px-3 !py-1.5" onClick={() => setPurgeProjectTarget(p)}>
+                  {t("admin.purge")}
+                </button>
+              </div>
+            ))
+          )}
         </div>
       )}
 
@@ -477,6 +517,32 @@ export default function AdminPanel() {
             </div>
           </form>
         </div>
+      )}
+
+      {purgeUserTarget && (
+        <PurgeConfirmModal
+          title={`${t("admin.purge")} — ${purgeUserTarget.username}`}
+          description={t("admin.purgeUserWarning")}
+          confirmWord={purgeUserTarget.username}
+          onClose={() => setPurgeUserTarget(null)}
+          onConfirm={async () => {
+            await api.post(`/admin/users/${purgeUserTarget.id}/purge`);
+            await loadUsers();
+          }}
+        />
+      )}
+
+      {purgeProjectTarget && (
+        <PurgeConfirmModal
+          title={`${t("admin.purge")} — ${purgeProjectTarget.name}`}
+          description={t("admin.purgeProjectWarning")}
+          confirmWord={purgeProjectTarget.name}
+          onClose={() => setPurgeProjectTarget(null)}
+          onConfirm={async () => {
+            await api.post(`/admin/projects/${purgeProjectTarget.id}/purge`);
+            await loadProjects();
+          }}
+        />
       )}
     </div>
   );

@@ -176,6 +176,7 @@ export const translations = {
       tabs: {
         pending: "Solicitudes",
         users: "Usuarios",
+        projects: "Proyectos",
         resets: "Reseteos de contraseña",
       },
       pendingUsers: "Usuarios pendientes de aprobación",
@@ -198,6 +199,17 @@ export const translations = {
       noResetRequests: "No hay solicitudes pendientes.",
       resolve: "Resolver",
       requestedAt: "Solicitado",
+      noProjects: "No hay proyectos creados.",
+      projectOwner: "Dueño",
+      projectMembers: "Miembros",
+      purge: "Purgar",
+      purgeUserWarning:
+        "Esto borra la cuenta para siempre, sin dejar rastro. Solo funciona si el usuario no tiene ningún gasto registrado en ningún proyecto — si comparte historial con otros, esto va a fallar para no descuadrar a nadie.",
+      purgeProjectWarning:
+        "Esto borra el proyecto entero para siempre: gastos, categorías, entidades y todo lo demás. Solo funciona si ya no le queda ningún miembro activo (todas las cuentas involucradas deben estar eliminadas primero).",
+      purgeTypeToConfirm: "Escribí el nombre exacto para confirmar:",
+      purgeFinalConfirm: "Esta acción es irreversible. ¿Confirmás que querés borrar esto para siempre?",
+      purgeConfirmButton: "Borrar para siempre",
     },
     quests: {
       title: "Pending Quests",
@@ -403,6 +415,7 @@ export const translations = {
       tabs: {
         pending: "Requests",
         users: "Users",
+        projects: "Projects",
         resets: "Password resets",
       },
       pendingUsers: "Users pending approval",
@@ -425,6 +438,17 @@ export const translations = {
       noResetRequests: "No pending requests.",
       resolve: "Resolve",
       requestedAt: "Requested",
+      noProjects: "No projects created yet.",
+      projectOwner: "Owner",
+      projectMembers: "Members",
+      purge: "Purge",
+      purgeUserWarning:
+        "This deletes the account forever, with no trace left. It only works if the user has no expenses recorded in any project — if they share history with others, this will fail so nobody else's balances get corrupted.",
+      purgeProjectWarning:
+        "This deletes the entire project forever: expenses, categories, entities, everything. It only works once no active member is left (every account involved must be removed first).",
+      purgeTypeToConfirm: "Type the exact name to confirm:",
+      purgeFinalConfirm: "This action is irreversible. Are you sure you want to delete this forever?",
+      purgeConfirmButton: "Delete forever",
     },
     quests: {
       title: "Pending Quests",
