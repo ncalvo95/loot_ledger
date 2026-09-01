@@ -1,11 +1,22 @@
-# Caddy resuelve el certificado HTTPS solo (Let's Encrypt) para el dominio
-# que le pases en la variable DOMAIN, y reenvía todo el tráfico al servicio
-# "loot-ledger" del docker-compose (puerto 3000, interno a la red de Docker).
+# Esta misma instancia de Caddy sirve DOS dominios, cada uno con su propio
+# certificado HTTPS automático (Let's Encrypt), en dos bloques separados:
 #
-# Para probar con DuckDNS: DOMAIN=loot-ledger.duckdns.org
-# El día que se compre el dominio propio: DOMAIN=www.loot-ledger.io
-# (se cambia en server/.env, no hace falta tocar este archivo)
+# - {$DOMAIN}: Loot Ledger en sí (servicio "loot-ledger" de este mismo
+#   docker-compose).
+#   Para probar con DuckDNS: DOMAIN=loot-ledger.duckdns.org
+#   El día que se compre el dominio propio: DOMAIN=www.loot-ledger.io
+#
+# - {$PORTFOLIO_DOMAIN}: el portfolio (castielo-web), que corre en OTRO
+#   repo/compose en la misma Pi -- llega hasta acá por la red Docker
+#   externa "edge" (ver docker-compose.yml), no por este compose.
+#
+# Ambas variables se cambian en el .env de la raíz del repo, no hace falta
+# tocar este archivo.
 
 {$DOMAIN:loot-ledger.duckdns.org} {
 	reverse_proxy loot-ledger:3000
+}
+
+{$PORTFOLIO_DOMAIN:castielo.duckdns.org} {
+	reverse_proxy castielo-web:3000
 }
