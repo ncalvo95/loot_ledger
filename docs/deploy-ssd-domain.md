@@ -413,6 +413,41 @@ reenvía todo a la app.
 Si no carga: revisá que el port-forwarding esté bien apuntado a la IP local
 correcta de la Pi, y mirá los logs con `docker compose logs caddy`.
 
+#### Opcional: servir otro sitio (ej. el portfolio) desde esta misma Caddy
+
+Esta misma Pi puede servir un segundo sitio corriendo en **otro** repo/
+compose (ej. `castielo-web`), sin abrir más puertos ni levantar otra
+instancia de Caddy: Caddy ya sabe pedir un certificado HTTPS por cada
+dominio que le pases, y los reenvía cada uno a su contenedor por una red
+Docker compartida (`edge`).
+
+1. Creá la red compartida una sola vez (no la crea ningún compose, es
+   independiente de los dos):
+   ```bash
+   docker network create edge
+   ```
+2. En el `.env` de la raíz de **este** repo, agregá el dominio del otro
+   sitio (si no lo agregás, Caddy sigue sirviendo solo Loot Ledger normal):
+   ```bash
+   echo "PORTFOLIO_DOMAIN=castielo.duckdns.org" >> .env
+   ```
+3. Si ese segundo dominio es un subdominio nuevo de la **misma** cuenta de
+   DuckDNS (mismo token), sumalo separado por coma en `DUCKDNS_SUBDOMAIN`
+   para que el mismo contenedor de DuckDNS renueve los dos:
+   ```
+   DUCKDNS_SUBDOMAIN=loot-ledger,castielo
+   ```
+4. En el compose del **otro** repo, el servicio tiene que unirse a la
+   misma red `edge` (sin publicar puerto al host — Caddy le llega por
+   nombre de contenedor) y tener un `container_name` que coincida con el
+   que espera `deploy/Caddyfile` (hoy, `castielo-web`).
+5. Recreá Caddy para que tome las variables nuevas y levantá el otro
+   compose:
+   ```bash
+   docker compose --profile duckdns up -d --build
+   cd ~/castielo-web && docker compose up -d --build
+   ```
+
 ### 5b. Más adelante, con `www.loot-ledger.io`: Cloudflare Tunnel
 
 Cuando compres el dominio (o si en el paso 0 te dio que tenés CGNAT), este

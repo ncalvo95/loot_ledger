@@ -48,6 +48,9 @@ services:
     container_name: loot-ledger-duckdns
     restart: unless-stopped
     environment:
+      # SUBDOMAINS acepta una lista separada por comas (ej.
+      # "loot-ledger,castielo") para renovar varios subdominios de la MISMA
+      # cuenta/token de DuckDNS con este único contenedor.
       SUBDOMAINS: ${DUCKDNS_SUBDOMAIN:-}
       TOKEN: ${DUCKDNS_TOKEN:-}
       LOG_FILE: "false"
@@ -65,6 +68,10 @@ services:
       # Cambiar a "www.loot-ledger.io" (o lo que sea) el día que se compre
       # el dominio: es el único lugar que hay que tocar para migrar.
       DOMAIN: ${PUBLIC_DOMAIN:-loot-ledger.duckdns.org}
+      # Segundo dominio que sirve esta misma instancia de Caddy (ver
+      # deploy/Caddyfile) -- hoy el portfolio (castielo-web), corriendo en
+      # otro compose/repo pero en la misma Pi, conectado por la red "edge".
+      PORTFOLIO_DOMAIN: ${PORTFOLIO_DOMAIN:-castielo.duckdns.org}
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -73,9 +80,25 @@ services:
       - loot-ledger
     profiles:
       - duckdns
+    # "default" (la red que ya usa para hablarle a "loot-ledger") + "edge"
+    # (compartida con otros compose/repos en la misma Pi, ej. castielo-web)
+    # -- hay que declarar "default" explícitamente porque en cuanto se
+    # define "networks:" para un servicio, Compose deja de sumarlo solo.
+    networks:
+      - default
+      - edge
 
 volumes:
   loot_ledger_data:
     name: loot_ledger_data
   caddy_data:
   caddy_config:
+
+networks:
+  default: {}
+  # Creada a mano una sola vez con "docker network create edge" -- no la
+  # gestiona este compose, solo se conecta. Cualquier otro contenedor (de
+  # otro repo/compose) que se una a "edge" con su container_name se vuelve
+  # alcanzable por Caddy con ese nombre, sin publicar puertos al host.
+  edge:
+    external: true
