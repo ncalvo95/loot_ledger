@@ -4,6 +4,7 @@ import { api } from "../api.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import PasswordInput from "../components/PasswordInput.jsx";
 import PurgeConfirmModal from "../components/PurgeConfirmModal.jsx";
+import InviteCodeModal from "../components/InviteCodeModal.jsx";
 
 const PASSWORD_RULE = /^[A-Za-z0-9._-]{6,16}$/;
 const USERNAME_RULE = /^[A-Za-z0-9._-]{4,10}$/;
@@ -11,12 +12,14 @@ const USERNAME_RULE = /^[A-Za-z0-9._-]{4,10}$/;
 function StatusBadge({ status, t }) {
   const map = {
     active: "border-neon-green/60 text-neon-green",
+    invited: "border-neon-cyan/60 text-neon-cyan",
     pending: "border-neon-purple/60 text-neon-purple",
     rejected: "border-neon-red/60 text-neon-red",
     removed: "border-slate-600 text-slate-500",
   };
   const labelMap = {
     active: t("admin.active"),
+    invited: t("admin.invitedStatus"),
     pending: t("admin.pending"),
     rejected: t("admin.rejected"),
     removed: t("admin.removedStatus"),
@@ -32,6 +35,8 @@ export default function AdminPanel() {
   const [resetRequests, setResetRequests] = useState([]);
   const [purgeUserTarget, setPurgeUserTarget] = useState(null);
   const [purgeProjectTarget, setPurgeProjectTarget] = useState(null);
+  const [inviteCodeModal, setInviteCodeModal] = useState(null); // { title, code }
+  const [inviteBusy, setInviteBusy] = useState(false);
   const [selectedPending, setSelectedPending] = useState(new Set());
   const [error, setError] = useState("");
 
@@ -175,6 +180,34 @@ export default function AdminPanel() {
   const reactivateUser = async (u) => {
     await api.post(`/admin/users/${u.id}/reactivate`);
     await loadUsers();
+  };
+
+  const generateInvite = async () => {
+    setError("");
+    setInviteBusy(true);
+    try {
+      const data = await api.post("/admin/invites");
+      setInviteCodeModal({ title: t("admin.inviteCodeGenerated"), code: data.code });
+      await loadUsers();
+    } catch (err) {
+      setError(tError(err));
+    } finally {
+      setInviteBusy(false);
+    }
+  };
+
+  const assignInviteCode = async (u) => {
+    setError("");
+    setInviteBusy(true);
+    try {
+      const data = await api.post(`/admin/users/${u.id}/invite-code`);
+      setInviteCodeModal({ title: `${t("admin.inviteCodeGenerated")} — ${u.username}`, code: data.code });
+      await loadUsers();
+    } catch (err) {
+      setError(tError(err));
+    } finally {
+      setInviteBusy(false);
+    }
   };
 
   const doResolveRequest = async (e) => {
@@ -322,9 +355,19 @@ export default function AdminPanel() {
                 onChange={(e) => setNewUserForm((f) => ({ ...f, password: e.target.value }))}
               />
             </div>
-            <button type="submit" disabled={busy} className="btn-primary">
-              {busy ? t("common.creating") : t("admin.createUser")}
-            </button>
+            <div className="flex items-center gap-3 flex-wrap">
+              <button type="submit" disabled={busy} className="btn-primary">
+                {busy ? t("common.creating") : t("admin.createUser")}
+              </button>
+              <button
+                type="button"
+                disabled={inviteBusy}
+                onClick={generateInvite}
+                className="btn-secondary"
+              >
+                {inviteBusy ? t("common.creating") : t("admin.generateInvite")}
+              </button>
+            </div>
           </form>
 
           <div className="panel divide-y divide-ink-700">
@@ -343,41 +386,67 @@ export default function AdminPanel() {
                   </p>
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                  <button
-                    className="btn-secondary !px-3 !py-1.5"
-                    onClick={() => {
-                      setRenameTarget(u);
-                      setNewUsername(u.username);
-                      setError("");
-                    }}
-                  >
-                    {t("admin.rename")}
-                  </button>
-                  <button
-                    className="btn-secondary !px-3 !py-1.5"
-                    onClick={() => {
-                      setResetTarget(u);
-                      setNewPassword("");
-                      setError("");
-                    }}
-                  >
-                    {t("admin.resetPassword")}
-                  </button>
-                  {u.status === "active" || u.status === "pending" || u.status === "rejected" ? (
-                    <button className="btn-danger !px-3 !py-1.5" onClick={() => removeUser(u)}>
-                      {t("common.remove")}
-                    </button>
+                  {u.status === "invited" ? (
+                    <>
+                      <button
+                        className="btn-secondary !px-3 !py-1.5"
+                        disabled={inviteBusy}
+                        onClick={() => assignInviteCode(u)}
+                      >
+                        {t("admin.regenerateInviteCode")}
+                      </button>
+                      <button className="btn-danger !px-3 !py-1.5" onClick={() => removeUser(u)}>
+                        {t("admin.cancelInvite")}
+                      </button>
+                    </>
                   ) : (
                     <>
-                      <button className="btn-primary !px-3 !py-1.5" onClick={() => reactivateUser(u)}>
-                        {t("admin.reactivate")}
+                      <button
+                        className="btn-secondary !px-3 !py-1.5"
+                        onClick={() => {
+                          setRenameTarget(u);
+                          setNewUsername(u.username);
+                          setError("");
+                        }}
+                      >
+                        {t("admin.rename")}
                       </button>
                       <button
-                        className="btn-danger !px-3 !py-1.5 border-neon-red/80"
-                        onClick={() => setPurgeUserTarget(u)}
+                        className="btn-secondary !px-3 !py-1.5"
+                        onClick={() => {
+                          setResetTarget(u);
+                          setNewPassword("");
+                          setError("");
+                        }}
                       >
-                        {t("admin.purge")}
+                        {t("admin.resetPassword")}
                       </button>
+                      {u.status === "active" && (
+                        <button
+                          className="btn-secondary !px-3 !py-1.5"
+                          disabled={inviteBusy}
+                          onClick={() => assignInviteCode(u)}
+                        >
+                          {t("admin.assignInviteCode")}
+                        </button>
+                      )}
+                      {u.status === "active" || u.status === "pending" || u.status === "rejected" ? (
+                        <button className="btn-danger !px-3 !py-1.5" onClick={() => removeUser(u)}>
+                          {t("common.remove")}
+                        </button>
+                      ) : (
+                        <>
+                          <button className="btn-primary !px-3 !py-1.5" onClick={() => reactivateUser(u)}>
+                            {t("admin.reactivate")}
+                          </button>
+                          <button
+                            className="btn-danger !px-3 !py-1.5 border-neon-red/80"
+                            onClick={() => setPurgeUserTarget(u)}
+                          >
+                            {t("admin.purge")}
+                          </button>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
@@ -542,6 +611,14 @@ export default function AdminPanel() {
             await api.post(`/admin/projects/${purgeProjectTarget.id}/purge`);
             await loadProjects();
           }}
+        />
+      )}
+
+      {inviteCodeModal && (
+        <InviteCodeModal
+          title={inviteCodeModal.title}
+          code={inviteCodeModal.code}
+          onClose={() => setInviteCodeModal(null)}
         />
       )}
     </div>

@@ -85,13 +85,59 @@ function migrateProjectMembersRole() {
 migrateUsersStatusEnum();
 migrateProjectMembersRole();
 
+// Igual que migrateUsersStatusEnum, pero para sumar 'invited' (placeholder de
+// una invitación sin reclamar todavía) al CHECK de status, y de paso las
+// columnas invite_code/invite_code_claimed_at -- se hace todo en el mismo
+// rebuild para no depender del orden entre dos migraciones separadas.
+function migrateUsersInviteSupport() {
+  if (!tableExists("users")) return;
+  const row = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").get();
+  if (row.sql.includes("'invited'")) return;
+
+  db.pragma("foreign_keys = OFF");
+  const migrate = db.transaction(() => {
+    db.exec(`
+      CREATE TABLE users_new_v3 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin','user')),
+        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('active','pending','rejected','removed','invited')),
+        invite_code TEXT,
+        invite_code_claimed_at TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+    db.exec(`
+      INSERT INTO users_new_v3 (id, username, password_hash, role, status, created_at, updated_at)
+      SELECT id, username, password_hash, role, status, created_at, updated_at FROM users
+    `);
+    db.exec("DROP TABLE users");
+    db.exec("ALTER TABLE users_new_v3 RENAME TO users");
+    db.exec(
+      "UPDATE sqlite_sequence SET seq = (SELECT COALESCE(MAX(id),0) FROM users) WHERE name = 'users'"
+    );
+    const violations = db.pragma("foreign_key_check");
+    if (violations.length) {
+      throw new Error("Migración de users (invites) dejó referencias FK rotas: " + JSON.stringify(violations));
+    }
+  });
+  migrate();
+  db.pragma("foreign_keys = ON");
+}
+
+migrateUsersInviteSupport();
+
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin','user')),
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('active','pending','rejected','removed')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('active','pending','rejected','removed','invited')),
+  invite_code TEXT,
+  invite_code_claimed_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -180,6 +226,7 @@ CREATE INDEX IF NOT EXISTS idx_project_members_project ON project_members(projec
 CREATE INDEX IF NOT EXISTS idx_project_members_user ON project_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_password_reset_requests_user ON password_reset_requests(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_invite_code ON users(invite_code);
 `);
 
 // Migra instalaciones existentes: la tabla "expenses" ya existía sin la

@@ -11,6 +11,7 @@ services:
       DB_PATH: /app/server/data/loot-ledger.db
       JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
       ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD:-11223344}
+      INVITE_CORS_ORIGIN: ${INVITE_CORS_ORIGIN:-https://castielo.duckdns.org}
     volumes:
       - loot_ledger_data:/app/server/data
 

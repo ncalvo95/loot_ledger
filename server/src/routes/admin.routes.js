@@ -5,6 +5,7 @@ const { validateUsername, validatePassword } = require("../validators");
 const { requireAuth, requireAdmin } = require("../auth");
 const { revokeAllSessionsForUser } = require("../services/sessions");
 const { getUserFootprint, canHardDeleteUser, hardDeleteUser, canPurgeProject, purgeProject } = require("../services/userCleanup");
+const { createInvitePlaceholder, assignInviteCodeToUser } = require("../services/invites");
 
 const router = express.Router();
 router.use(requireAuth, requireAdmin);
@@ -51,6 +52,28 @@ router.post("/users", (req, res) => {
     .run(username, hash);
   const user = db.prepare("SELECT * FROM users WHERE id = ?").get(info.lastInsertRowid);
   res.status(201).json({ user: publicUser(user) });
+});
+
+// Caso A: crea una cuenta placeholder con un código de invitación de un
+// solo uso. El código se devuelve acá y no se vuelve a mostrar -- si se
+// pierde antes de compartirlo, hay que regenerarlo con el endpoint de abajo.
+router.post("/invites", (req, res) => {
+  const { username, code, id } = createInvitePlaceholder();
+  res.status(201).json({ id, username, code });
+});
+
+// Caso B (usuario activo) y regeneración del código de un placeholder sin
+// reclamar (status 'invited') -- no toca username/password/sesiones.
+router.post("/users/:id/invite-code", (req, res) => {
+  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
+  if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
+  if (user.status !== "active" && user.status !== "invited") {
+    return res.status(400).json({
+      error: "Solo se puede asignar un código de invitación a un usuario activo o a una invitación sin reclamar.",
+    });
+  }
+  const code = assignInviteCodeToUser(user.id);
+  res.json({ code });
 });
 
 router.post("/users/:id/rename", (req, res) => {

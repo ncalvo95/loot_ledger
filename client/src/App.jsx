@@ -6,6 +6,7 @@ import { ProtectedRoute, AdminRoute } from "./components/ProtectedRoute.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
+import InvitePage from "./pages/InvitePage.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import ProjectPage from "./pages/ProjectPage.jsx";
 import QuestsPage from "./pages/QuestsPage.jsx";
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/invite" element={<InvitePage />} />
         <Route
           path="/"
           element={
