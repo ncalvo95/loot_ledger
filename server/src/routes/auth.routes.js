@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const db = require("../db");
 const { validateUsername, validatePassword } = require("../validators");
@@ -11,10 +12,47 @@ const {
   revokeOtherSessions,
   revokeSessionByToken,
 } = require("../services/sessions");
+const { validateInviteCode, claimInvite } = require("../services/invites");
 
 const router = express.Router();
 
 const RESET_REQUEST_COOLDOWN_HOURS = 24;
+
+// Los códigos de invitación se validan/reclaman desde afuera del dominio de
+// Loot Ledger (ej. la card del proyecto en un portfolio), asi que estas dos
+// rutas puntuales necesitan CORS habilitado -- a diferencia del resto de la
+// API, que es same-origin. Sin "credentials" (no usan cookies, son públicas).
+const inviteCors = cors({ origin: process.env.INVITE_CORS_ORIGIN || "https://castielo.duckdns.org" });
+
+// Rate limit básico en memoria (proceso único, sin dependencias nuevas) para
+// que no se puedan probar códigos por fuerza bruta. Es generoso a propósito:
+// no debería notarlo un uso normal, pero frena un loop automatizado.
+const INVITE_RATE_LIMIT = 20;
+const INVITE_RATE_WINDOW_MS = 10 * 60 * 1000;
+const inviteAttempts = new Map(); // ip -> { count, windowStart }
+
+function inviteRateLimit(req, res, next) {
+  const ip = req.ip || "unknown";
+  const now = Date.now();
+  const entry = inviteAttempts.get(ip);
+  if (!entry || now - entry.windowStart > INVITE_RATE_WINDOW_MS) {
+    inviteAttempts.set(ip, { count: 1, windowStart: now });
+    return next();
+  }
+  entry.count += 1;
+  if (entry.count > INVITE_RATE_LIMIT) {
+    return res.status(429).json({ error: "Demasiados intentos. Probá de nuevo en un rato." });
+  }
+  next();
+}
+
+// Limpieza periódica para no acumular entradas de IPs que ya no vuelven.
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of inviteAttempts) {
+    if (now - entry.windowStart > INVITE_RATE_WINDOW_MS) inviteAttempts.delete(ip);
+  }
+}, 60 * 60 * 1000).unref();
 
 function publicUser(user) {
   return { id: user.id, username: user.username, role: user.role, status: user.status };
@@ -49,6 +87,13 @@ router.post("/register", (req, res) => {
       const reactivated = db.prepare("SELECT * FROM users WHERE id = ?").get(existing.id);
       setAuthCookie(req, res, reactivated, false, req.get("user-agent"));
       return res.status(200).json({ user: publicUser(reactivated), status: "active", reactivated: true });
+    }
+    if (existing.status === "invited") {
+      // Placeholder de una invitación sin reclamar: NO se puede tomar por acá
+      // adivinando el username -- solo se reclama con /auth/claim-invite y su
+      // código. Devolvemos el mismo 409 que "nombre en uso" para no filtrar
+      // que ese username en particular es un placeholder de invitación.
+      return res.status(409).json({ error: "Ese nombre de usuario ya está en uso.", code: "USERNAME_TAKEN" });
     }
     // status === 'rejected': se reenvía como nueva solicitud pendiente de aprobación.
     db.prepare(
@@ -89,6 +134,12 @@ router.post("/login", (req, res) => {
     return res.status(403).json({
       error: "Esta cuenta fue eliminada. Podés volver a registrarte con el mismo usuario.",
       code: "REMOVED",
+    });
+  }
+  if (user.status === "invited") {
+    return res.status(403).json({
+      error: "Esta es una invitación sin reclamar. Usá el código de invitación para crear tu cuenta.",
+      code: "INVITE_UNCLAIMED",
     });
   }
 
@@ -135,6 +186,43 @@ router.post("/sessions/:sessionId/rename", requireAuth, (req, res) => {
 router.post("/sessions/revoke-others", requireAuth, (req, res) => {
   const count = revokeOtherSessions(req.user.id, req.sessionId);
   res.json({ ok: true, revoked: count });
+});
+
+// Valida un código sin consumirlo -- no requiere login, es la primera
+// consulta que hace quien llega con una invitación (desde acá o desde afuera).
+router.options("/invite/:code", inviteCors);
+router.get("/invite/:code", inviteCors, inviteRateLimit, (req, res) => {
+  const result = validateInviteCode(req.params.code);
+  if (!result) return res.status(404).json({ valid: false });
+  res.json({ valid: true, mode: result.mode });
+});
+
+// Reclama un placeholder (Caso A): pisa usuario/contraseña y la cuenta pasa
+// a 'pending', mismo flujo de aprobación que un registro común. No inicia
+// sesión sola a propósito -- el admin todavía tiene que aprobarla.
+router.options("/claim-invite", inviteCors);
+router.post("/claim-invite", inviteCors, inviteRateLimit, (req, res) => {
+  const { code, username, password } = req.body || {};
+  if (!code || typeof code !== "string") {
+    return res.status(400).json({ error: "Falta el código de invitación." });
+  }
+  const usernameError = validateUsername(username);
+  if (usernameError) return res.status(400).json({ error: usernameError });
+  const passwordError = validatePassword(password);
+  if (passwordError) return res.status(400).json({ error: passwordError });
+
+  try {
+    claimInvite(code, username, password);
+  } catch (err) {
+    if (err.code === "INVALID_INVITE") {
+      return res.status(404).json({ error: err.message, code: "INVALID_INVITE" });
+    }
+    if (err.code === "USERNAME_TAKEN") {
+      return res.status(409).json({ error: err.message, code: "USERNAME_TAKEN" });
+    }
+    throw err;
+  }
+  return res.status(202).json({ status: "pending" });
 });
 
 router.get("/me", requireAuth, (req, res) => {
