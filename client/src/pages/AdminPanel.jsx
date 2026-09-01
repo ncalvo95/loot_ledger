@@ -196,11 +196,11 @@ export default function AdminPanel() {
     }
   };
 
-  const assignInviteCode = async (u) => {
+  const assignInviteCode = async (u, { regenerate = false } = {}) => {
     setError("");
     setInviteBusy(true);
     try {
-      const data = await api.post(`/admin/users/${u.id}/invite-code`);
+      const data = await api.post(`/admin/users/${u.id}/invite-code`, { regenerate });
       setInviteCodeModal({ title: `${t("admin.inviteCodeGenerated")} — ${u.username}`, code: data.code });
       await loadUsers();
     } catch (err) {
@@ -391,7 +391,7 @@ export default function AdminPanel() {
                       <button
                         className="btn-secondary !px-3 !py-1.5"
                         disabled={inviteBusy}
-                        onClick={() => assignInviteCode(u)}
+                        onClick={() => assignInviteCode(u, { regenerate: true })}
                       >
                         {t("admin.regenerateInviteCode")}
                       </button>
@@ -421,7 +421,7 @@ export default function AdminPanel() {
                       >
                         {t("admin.resetPassword")}
                       </button>
-                      {u.status === "active" && (
+                      {u.status === "active" && u.username !== "administrator" && (
                         <button
                           className="btn-secondary !px-3 !py-1.5"
                           disabled={inviteBusy}

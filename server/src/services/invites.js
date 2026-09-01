@@ -39,11 +39,16 @@ function createInvitePlaceholder() {
   return { id: info.lastInsertRowid, username, code };
 }
 
-// Caso B: le asigna (o reasigna) un código de invitación a una cuenta que
-// ya existe -- no toca username/password/sesiones, solo agrega el código.
-// También sirve para regenerar el código de un placeholder sin reclamar
-// (por si el admin lo perdió antes de compartirlo).
-function assignInviteCodeToUser(userId) {
+// Caso B: le asigna un código de invitación a una cuenta que ya existe --
+// no toca username/password/sesiones, solo agrega el código. Es idempotente
+// por default: si ya tiene uno, devuelve el mismo (no lo cambia) -- pasar
+// regenerate:true para forzar uno nuevo (ej. el placeholder de una
+// invitación sin reclamar, si el admin perdió el código original).
+function assignInviteCodeToUser(userId, { regenerate = false } = {}) {
+  if (!regenerate) {
+    const current = db.prepare("SELECT invite_code FROM users WHERE id = ?").get(userId);
+    if (current && current.invite_code) return current.invite_code;
+  }
   const code = generateInviteCode();
   db.prepare("UPDATE users SET invite_code = ?, updated_at = datetime('now') WHERE id = ?").run(code, userId);
   return code;

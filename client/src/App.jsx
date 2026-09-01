@@ -4,7 +4,6 @@ import Navbar from "./components/Navbar.jsx";
 import UpdateBanner from "./components/UpdateBanner.jsx";
 import { ProtectedRoute, AdminRoute } from "./components/ProtectedRoute.jsx";
 import Login from "./pages/Login.jsx";
-import Register from "./pages/Register.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 import InvitePage from "./pages/InvitePage.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
@@ -18,7 +17,7 @@ export default function App() {
       <Navbar />
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/register" element={<InvitePage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/invite" element={<InvitePage />} />
         <Route

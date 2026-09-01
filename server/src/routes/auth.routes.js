@@ -59,7 +59,7 @@ function publicUser(user) {
 }
 
 router.post("/register", (req, res) => {
-  const { username, password } = req.body || {};
+  const { username, password, code } = req.body || {};
   const usernameError = validateUsername(username);
   if (usernameError) return res.status(400).json({ error: usernameError });
   const passwordError = validatePassword(password);
@@ -102,9 +102,29 @@ router.post("/register", (req, res) => {
     return res.status(202).json({ status: "pending" });
   }
 
-  db.prepare(
-    "INSERT INTO users (username, password_hash, role, status) VALUES (?, ?, 'user', 'pending')"
-  ).run(username, hash);
+  // Usuario totalmente nuevo (nunca visto antes): este servidor es por
+  // invitación, ya no hay alta libre. Requiere el mismo código de invitación
+  // que /auth/claim-invite y reusa exactamente la misma lógica -- esta ruta
+  // es simplemente la variante same-origin de esa (la pantalla de "Crear
+  // personaje" pega acá, el botón embebido en el portfolio pega directo a
+  // /auth/claim-invite por el tema de CORS).
+  if (!code || typeof code !== "string") {
+    return res.status(403).json({
+      error: "Este servidor es por invitación. Pedile un código de invitación al administrador.",
+      code: "INVITE_REQUIRED",
+    });
+  }
+  try {
+    claimInvite(code, username, password);
+  } catch (err) {
+    if (err.code === "INVALID_INVITE") {
+      return res.status(404).json({ error: err.message, code: "INVALID_INVITE" });
+    }
+    if (err.code === "USERNAME_TAKEN") {
+      return res.status(409).json({ error: err.message, code: "USERNAME_TAKEN" });
+    }
+    throw err;
+  }
   return res.status(202).json({ status: "pending" });
 });
 
@@ -193,7 +213,9 @@ router.post("/sessions/revoke-others", requireAuth, (req, res) => {
 router.options("/invite/:code", inviteCors);
 router.get("/invite/:code", inviteCors, inviteRateLimit, (req, res) => {
   const result = validateInviteCode(req.params.code);
-  if (!result) return res.status(404).json({ valid: false });
+  if (!result) {
+    return res.status(404).json({ valid: false, error: "Código de invitación inválido o ya usado.", code: "INVALID_INVITE" });
+  }
   res.json({ valid: true, mode: result.mode });
 });
 

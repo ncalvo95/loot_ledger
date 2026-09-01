@@ -62,17 +62,22 @@ router.post("/invites", (req, res) => {
   res.status(201).json({ id, username, code });
 });
 
-// Caso B (usuario activo) y regeneración del código de un placeholder sin
-// reclamar (status 'invited') -- no toca username/password/sesiones.
+// Caso B (usuario activo, idempotente -- no cambia si ya tiene código) y
+// regeneración del código de un placeholder sin reclamar (status 'invited',
+// pasa regenerate:true) -- no toca username/password/sesiones.
 router.post("/users/:id/invite-code", (req, res) => {
   const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
   if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
+  if (user.username === "administrator") {
+    return res.status(400).json({ error: "No se puede asignar un código de invitación a la cuenta de administrador." });
+  }
   if (user.status !== "active" && user.status !== "invited") {
     return res.status(400).json({
       error: "Solo se puede asignar un código de invitación a un usuario activo o a una invitación sin reclamar.",
     });
   }
-  const code = assignInviteCodeToUser(user.id);
+  const regenerate = !!(req.body && req.body.regenerate);
+  const code = assignInviteCodeToUser(user.id, { regenerate });
   res.json({ code });
 });
 
