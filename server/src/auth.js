@@ -1,4 +1,5 @@
 const { createSession, findValidSession, touchSession } = require("./services/sessions");
+const { MOUNT_PATH } = require("./base-path");
 
 const COOKIE_NAME = "loot_ledger_token";
 
@@ -7,6 +8,10 @@ function setAuthCookie(req, res, user, remember, userAgent) {
   const cookieOpts = {
     httpOnly: true,
     sameSite: "lax",
+    // Une cookie a todo lo que cuelga de MOUNT_PATH ("/" en un deploy normal,
+    // "/loot-ledger" cuando convive con otro sitio en el mismo dominio) --
+    // tiene que coincidir con clearAuthCookie, si no el navegador no la borra.
+    path: MOUNT_PATH,
     // Una cookie "Secure" solo la guarda el navegador si la conexión es
     // HTTPS real -- por eso se decide según req.secure (que con "trust
     // proxy" refleja el X-Forwarded-Proto de Caddy) y no según NODE_ENV:
@@ -21,7 +26,7 @@ function setAuthCookie(req, res, user, remember, userAgent) {
 }
 
 function clearAuthCookie(res) {
-  res.clearCookie(COOKIE_NAME);
+  res.clearCookie(COOKIE_NAME, { path: MOUNT_PATH });
 }
 
 function requireAuth(req, res, next) {

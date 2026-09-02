@@ -1,5 +1,9 @@
+// import.meta.env.BASE_URL siempre termina en "/" (ver vite.config.js) y
+// "url" siempre arranca con "/", así que esto arma un solo separador tanto
+// en la raíz ("/" + "api" + "/auth/login") como bajo un subpath
+// ("/loot-ledger/" + "api" + "/auth/login").
 async function request(method, url, body) {
-  const res = await fetch(`/api${url}`, {
+  const res = await fetch(`${import.meta.env.BASE_URL}api${url}`, {
     method,
     credentials: "include",
     headers: body ? { "Content-Type": "application/json" } : undefined,
@@ -26,7 +30,7 @@ export const api = {
 
 export function downloadExport(projectId, params) {
   const query = new URLSearchParams(params).toString();
-  const url = `/api/projects/${projectId}/export?${query}`;
+  const url = `${import.meta.env.BASE_URL}api/projects/${projectId}/export?${query}`;
   const link = document.createElement("a");
   link.href = url;
   link.rel = "noopener";

@@ -1,6 +1,14 @@
 services:
   loot-ledger:
-    build: .
+    build:
+      context: .
+      # Tiene que coincidir con el BASE_PATH de "environment:" acá abajo --
+      # una sola variable en el .env de la raíz del repo controla las dos
+      # (cliente horneado en el build + backend en runtime). Si cambiás
+      # BASE_PATH hace falta reconstruir la imagen ("--build"), no alcanza
+      # con reiniciar el contenedor: queda horneado en los assets del build.
+      args:
+        BASE_PATH: ${BASE_PATH:-}
     image: loot-ledger:latest
     container_name: loot-ledger
     restart: unless-stopped
@@ -12,6 +20,10 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
       ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD:-11223344}
       INVITE_CORS_ORIGIN: ${INVITE_CORS_ORIGIN:-https://castielo.duckdns.org}
+      # Subpath bajo el que cuelga la app (ej. "/loot-ledger" para
+      # www.castielo.io/loot-ledger). Vacío por defecto = raíz del dominio,
+      # como siempre. Ver server/src/base-path.js.
+      BASE_PATH: ${BASE_PATH:-}
     volumes:
       - loot_ledger_data:/app/server/data
 
@@ -35,6 +47,15 @@ services:
       - loot-ledger
     profiles:
       - tunnel
+    # "default" (para llegar a "loot-ledger:3000") + "edge" (compartida con
+    # otros compose/repos en la misma Pi, ej. castielo-web, para poder
+    # rutear ambos hostnames/paths desde un único túnel -- ver
+    # docs/deploy-ssd-domain.md). Hay que declarar "default" explícitamente
+    # porque en cuanto se define "networks:" para un servicio, Compose deja
+    # de sumarlo solo.
+    networks:
+      - default
+      - edge
 
   # Alternativa gratis a Cloudflare Tunnel para probar el acceso remoto sin
   # comprar un dominio todavía: DuckDNS le pone nombre a tu IP pública de

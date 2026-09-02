@@ -496,6 +496,88 @@ El certificado HTTPS también lo maneja Cloudflare solo.
     forwardeado los puertos 80/443 para DuckDNS, ya los podés cerrar en el
     router — con este método no hace falta ningún puerto abierto.
 
+#### Opcional: convivir con otro sitio bajo el mismo dominio, por subpath
+
+Igual que la sección 5a tiene una variante para servir un segundo sitio por
+un segundo *hostname* (`castielo.duckdns.org` además de
+`loot-ledger.duckdns.org`), acá va la variante para cuando los dos sitios
+comparten un único dominio propio y se separan por *path* — ej.
+`www.castielo.io/` para el portfolio (`castielo-web`) y
+`www.castielo.io/loot-ledger` para esta app, con un solo túnel de
+Cloudflare.
+
+A diferencia de la variante por hostname, acá Loot Ledger **sí** necesita
+saber que no vive en la raíz: tanto el frontend (assets del build) como el
+backend (rutas de la API y la cookie de sesión) tienen que colgar de
+`/loot-ledger`. Esto ya está resuelto en el código con una única variable,
+`BASE_PATH` (ver `server/src/base-path.js` y `client/vite.config.js`) — no
+hace falta tocar nada más.
+
+1. En el `.env` de la raíz del repo, agregá:
+   ```bash
+   echo "BASE_PATH=/loot-ledger" >> .env
+   ```
+2. Reconstruí la imagen (no alcanza con reiniciar el contenedor: el
+   subpath queda horneado en los assets del build del cliente):
+   ```bash
+   docker compose up -d --build loot-ledger
+   ```
+3. Sumá `loot-ledger` a la red compartida `edge` (la misma que usa la
+   variante por hostname — creala una sola vez si todavía no existe):
+   ```bash
+   docker network create edge   # si todavía no la creaste
+   ```
+   El servicio `cloudflared` de este compose ya está declarado en
+   `[default, edge]`, así que después de levantarlo va a poder llegar
+   tanto a `loot-ledger:3000` (por `default`) como a `castielo-web:3000`
+   (por `edge`, si ese otro compose también se unió a `edge` con ese
+   `container_name` — mismo requisito que en la variante por hostname).
+4. Rutear por path en el túnel. Dos formas, elegí la que te resulte más
+   cómoda:
+   - **Desde el dashboard** (más simple si tu plan/versión de Cloudflare
+     lo permite): en **Zero Trust → Networks → Tunnels →** tu túnel →
+     **Public Hostname**, al editar/crear la entrada para
+     `www.castielo.io` fijate si aparece un campo **Path** (además de
+     Subdomain/Domain/Service) — ahí va `loot-ledger` (o `loot-ledger/*`
+     según la versión del dashboard), apuntando a `loot-ledger:3000`. Con
+     eso alcanza una segunda entrada, sin Path, apuntando a
+     `castielo-web:3000` para todo lo demás — el orden importa: la entrada
+     con Path más específico tiene que evaluarse antes que el catch-all.
+   - **Con `config.yml`** (si el dashboard no te deja poner Path, o
+     preferís tenerlo versionado): armá un archivo tipo
+     ```yaml
+     tunnel: <tu-tunnel-id>
+     credentials-file: /etc/cloudflared/creds.json
+     ingress:
+       - hostname: www.castielo.io
+         path: ^/loot-ledger(/.*)?$
+         service: http://loot-ledger:3000
+       - hostname: www.castielo.io
+         service: http://castielo-web:3000
+       - service: http_status:404
+     ```
+     y montalo en el servicio `cloudflared` (`volumes:` con ese
+     `config.yml` y el archivo de credenciales del túnel), cambiando
+     `command: tunnel run` por `command: tunnel --config
+     /etc/cloudflared/config.yml run` — en ese modo el túnel deja de leer
+     la config del dashboard, así que las reglas de Public Hostname que
+     hayas puesto ahí quedan sin efecto mientras uses `config.yml`.
+5. Esperá la propagación y probá desde datos móviles:
+   - `https://www.castielo.io/` → el portfolio.
+   - `https://www.castielo.io/loot-ledger` → Loot Ledger. Probá también
+     refrescar la página estando ya adentro (no solo entrar por el link) y
+     loguearte, para confirmar que la cookie de sesión y los assets
+     cargan bien desde el subpath.
+6. Si veías el perfil `duckdns` corriendo (sección 5a) y ya no lo
+   necesitás porque este dominio propio reemplaza esa prueba, bajalo:
+   ```bash
+   docker compose --profile duckdns down
+   ```
+
+Para volver a servir Loot Ledger en la raíz de su propio dominio más
+adelante (dejar de convivir bajo `/loot-ledger`), alcanza con sacar
+`BASE_PATH` del `.env` y reconstruir de nuevo.
+
 ### Puertos, resumen
 
 | Método | Puertos que abrís en el router | Puerto 3000 |

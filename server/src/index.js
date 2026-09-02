@@ -16,6 +16,7 @@ const expensesRoutes = require("./routes/expenses.routes");
 const balancesRoutes = require("./routes/balances.routes");
 const exportRoutes = require("./routes/export.routes");
 const questsRoutes = require("./routes/quests.routes");
+const { MOUNT_PATH } = require("./base-path");
 
 const app = express();
 app.disable("x-powered-by");
@@ -30,32 +31,40 @@ if (process.env.CORS_ORIGIN) {
   app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true }));
 }
 
-app.use("/api/auth", authRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/projects", projectsRoutes);
-app.use("/api/projects/:id/categories", categoriesRoutes);
-app.use("/api/projects/:id/entities", entitiesRoutes);
-app.use("/api/projects/:id/expenses", expensesRoutes);
-app.use("/api/projects/:id/balances", balancesRoutes);
-app.use("/api/projects/:id/export", exportRoutes);
-app.use("/api/quests", questsRoutes);
+// Todo (API + estáticos) cuelga de un router montado en MOUNT_PATH, para
+// poder convivir con otro sitio bajo el mismo dominio (ver base-path.js). En
+// un deploy normal MOUNT_PATH es "/" y esto se comporta exactamente igual
+// que antes.
+const router = express.Router();
 
-app.get("/api/health", (req, res) => res.json({ ok: true }));
+router.use("/api/auth", authRoutes);
+router.use("/api/admin", adminRoutes);
+router.use("/api/projects", projectsRoutes);
+router.use("/api/projects/:id/categories", categoriesRoutes);
+router.use("/api/projects/:id/entities", entitiesRoutes);
+router.use("/api/projects/:id/expenses", expensesRoutes);
+router.use("/api/projects/:id/balances", balancesRoutes);
+router.use("/api/projects/:id/export", exportRoutes);
+router.use("/api/quests", questsRoutes);
+
+router.get("/api/health", (req, res) => res.json({ ok: true }));
 
 // Cambia cada vez que se reinicia el proceso (o sea, en cada "docker compose
 // up -d --build"). El frontend lo compara contra el valor que tenía al
 // cargar la página para avisar si alguien la dejó abierta de fondo mientras
 // se desplegaba una versión nueva.
 const BOOT_ID = String(Date.now());
-app.get("/api/version", (req, res) => res.json({ version: BOOT_ID }));
+router.get("/api/version", (req, res) => res.json({ version: BOOT_ID }));
 
 const clientDist = path.join(__dirname, "..", "..", "client", "dist");
 if (fs.existsSync(clientDist)) {
-  app.use(express.static(clientDist));
-  app.get(/^(?!\/api).*/, (req, res) => {
+  router.use(express.static(clientDist));
+  router.get(/^(?!\/api).*/, (req, res) => {
     res.sendFile(path.join(clientDist, "index.html"));
   });
 }
+
+app.use(MOUNT_PATH, router);
 
 app.use((err, req, res, next) => {
   console.error(err);
