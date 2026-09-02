@@ -1,6 +1,12 @@
 # Build del frontend (React + Vite)
 FROM node:20-bookworm-slim AS client-build
 WORKDIR /app/client
+# Subpath bajo el que cuelga la app (ej. "/loot-ledger"), horneado en los
+# assets del build -- ver client/vite.config.js y server/src/base-path.js.
+# Vacío por defecto: build normal, en la raíz. Se pasa como build arg desde
+# docker-compose.yml (variable BASE_PATH del .env de la raíz del repo).
+ARG BASE_PATH=
+ENV BASE_PATH=$BASE_PATH
 COPY client/package.json client/package-lock.json* ./
 RUN npm install
 COPY client/ ./

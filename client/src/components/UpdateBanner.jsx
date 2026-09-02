@@ -13,7 +13,7 @@ export default function UpdateBanner() {
 
     const check = async () => {
       try {
-        const res = await fetch("/api/version");
+        const res = await fetch(`${import.meta.env.BASE_URL}api/version`);
         const data = await res.json();
         if (cancelled) return;
         if (knownVersion.current === null) {
