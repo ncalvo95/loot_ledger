@@ -61,7 +61,7 @@ export default function Navbar() {
     <header className="border-b border-ink-700 bg-ink-950/90 backdrop-blur sticky top-0 z-20">
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 min-w-0">
-          <img src="/icons/icon-192.png" alt="" className="w-6 h-6 rounded-md shrink-0" />
+          <img src={`${import.meta.env.BASE_URL}icons/icon-192.png`} alt="" className="w-6 h-6 rounded-md shrink-0" />
           <span
             className="font-display font-bold uppercase tracking-[0.15em] text-neon-cyan text-lg truncate"
             style={{ textShadow: "0 0 10px rgba(45,230,255,0.5)" }}
