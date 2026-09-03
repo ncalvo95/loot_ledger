@@ -5,7 +5,6 @@ import { useLanguage } from "../i18n/LanguageContext.jsx";
 export default function MembersPanel({ projectId, members, isOwner, canManage, isGlobalAdmin, onChanged }) {
   const { t, tError } = useLanguage();
   const [username, setUsername] = useState("");
-  const [mode, setMode] = useState("add");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -14,7 +13,7 @@ export default function MembersPanel({ projectId, members, isOwner, canManage, i
     setError("");
     setBusy(true);
     try {
-      await api.post(`/projects/${projectId}/members`, { username: username.trim(), mode });
+      await api.post(`/projects/${projectId}/members`, { username: username.trim() });
       setUsername("");
       onChanged();
     } catch (err) {
@@ -105,18 +104,9 @@ export default function MembersPanel({ projectId, members, isOwner, canManage, i
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
-          <div className="flex gap-4 text-sm text-slate-300">
-            <label className="flex items-center gap-1">
-              <input type="radio" checked={mode === "add"} onChange={() => setMode("add")} /> {t("team.addDirect")}
-            </label>
-            <label className="flex items-center gap-1">
-              <input type="radio" checked={mode === "invite"} onChange={() => setMode("invite")} />{" "}
-              {t("team.grantVisibility")}
-            </label>
-          </div>
           {error && <p className="text-neon-red text-xs">{error}</p>}
           <button type="submit" disabled={busy} className="btn-primary w-full">
-            {busy ? t("common.sending") : t("common.confirm")}
+            {busy ? t("common.sending") : t("team.inviteCta")}
           </button>
         </form>
       )}

@@ -88,7 +88,9 @@ export default function ProjectPage() {
           <Link to="/" className="text-xs text-slate-500 hover:text-neon-cyan">
             ← {t("project.dashboard")}
           </Link>
-          <h1 className="title-glow text-3xl mt-1">{detail.project.name}</h1>
+          <h1 className="title-glow text-3xl mt-1">
+            {detail.project.emoji || "🗺️"} {detail.project.name}
+          </h1>
         </div>
         <nav className="flex gap-2">
           {TABS.map((tabItem) => (
@@ -200,7 +202,15 @@ export default function ProjectPage() {
         </div>
       )}
 
-      {tab === "loot" && <BalanceView balances={balances} />}
+      {tab === "loot" && (
+        <BalanceView
+          balances={balances}
+          projectId={id}
+          currentUserId={user.id}
+          canManage={detail.canManage}
+          onSettled={refreshAll}
+        />
+      )}
 
       {tab === "team" && (
         <MembersPanel

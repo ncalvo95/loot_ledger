@@ -59,20 +59,18 @@ router.get("/", (req, res) => {
 });
 
 router.post("/", (req, res) => {
-  const { name } = req.body || {};
+  const { name, emoji } = req.body || {};
   if (!name || !name.trim()) return res.status(400).json({ error: "El nombre del proyecto es obligatorio." });
+  const trimmedEmoji = (emoji || "").trim() || null;
 
   const insertProject = db.transaction(() => {
     const info = db
-      .prepare("INSERT INTO projects (name, owner_id) VALUES (?, ?)")
-      .run(name.trim(), req.user.id);
+      .prepare("INSERT INTO projects (name, emoji, owner_id) VALUES (?, ?, ?)")
+      .run(name.trim(), trimmedEmoji, req.user.id);
     const projectId = info.lastInsertRowid;
     db.prepare(
       "INSERT INTO project_members (project_id, user_id, status, role, added_by) VALUES (?, ?, 'member', 'owner', ?)"
     ).run(projectId, req.user.id, req.user.id);
-    db.prepare(
-      "INSERT INTO categories (project_id, name, is_default) VALUES (?, 'Reembolso', 1)"
-    ).run(projectId);
     return projectId;
   });
 
@@ -92,7 +90,7 @@ router.get("/:id", loadProject, requireProjectAccess, (req, res) => {
     )
     .all(req.project.id);
   const categories = db
-    .prepare("SELECT * FROM categories WHERE project_id = ? ORDER BY is_default DESC, name ASC")
+    .prepare("SELECT * FROM categories WHERE project_id = ? ORDER BY name ASC")
     .all(req.project.id);
   const entities = db.prepare("SELECT * FROM entities WHERE project_id = ? ORDER BY name ASC").all(req.project.id);
   const myRole = getMemberRole(req.project.id, req.user.id);
@@ -112,9 +110,11 @@ router.post("/:id/members", loadProject, (req, res) => {
   if (!canManageProject(req.project, req)) {
     return res.status(403).json({ error: "Solo el administrador del proyecto puede agregar miembros." });
   }
-  const { username, mode } = req.body || {};
+  const { username } = req.body || {};
   if (!username) return res.status(400).json({ error: "Indicá el nombre de usuario." });
-  const targetStatus = mode === "invite" ? "invited" : "member";
+  // Todo ingreso a un proyecto pasa siempre por invitación: la otra persona
+  // tiene que aceptarla desde su Dashboard antes de quedar como miembro.
+  const targetStatus = "invited";
 
   const user = db.prepare("SELECT * FROM users WHERE username = ? AND status = 'active'").get(username);
   if (!user) return res.status(404).json({ error: "No existe un usuario activo con ese nombre." });

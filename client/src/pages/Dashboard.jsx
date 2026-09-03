@@ -4,12 +4,19 @@ import { api } from "../api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 
+const PROJECT_EMOJIS = [
+  "🗺️", "🎮", "🏆", "💰", "🛡️", "⚔️", "🔥", "💎", "🍕", "🏕️",
+  "✈️", "🚗", "🏠", "🎉", "🍺", "☕", "🎸", "🐉", "👾", "🎲",
+  "🧭", "⛺", "🏔️", "🚀", "🛒", "📦", "🎯", "🍔", "🎬", "⚡",
+];
+
 export default function Dashboard() {
   const { user } = useAuth();
   const { t, tError } = useLanguage();
   const [active, setActive] = useState([]);
   const [invited, setInvited] = useState([]);
   const [newName, setNewName] = useState("");
+  const [newEmoji, setNewEmoji] = useState(PROJECT_EMOJIS[0]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -32,8 +39,9 @@ export default function Dashboard() {
     setBusy(true);
     setError("");
     try {
-      await api.post("/projects", { name: newName.trim() });
+      await api.post("/projects", { name: newName.trim(), emoji: newEmoji });
       setNewName("");
+      setNewEmoji(PROJECT_EMOJIS[0]);
       await load();
     } catch (err) {
       setError(tError(err));
@@ -103,7 +111,7 @@ export default function Dashboard() {
                     <h3 className="font-display font-bold text-lg text-slate-100 group-hover:text-neon-cyan">
                       {p.name}
                     </h3>
-                    <span className="text-2xl">🗺️</span>
+                    <span className="text-2xl">{p.emoji || "🗺️"}</span>
                   </div>
                   <p className="text-xs text-slate-500 mt-2">
                     {t("dashboard.owner")}: {p.owner_username}
@@ -135,6 +143,27 @@ export default function Dashboard() {
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder={t("dashboard.projectNamePlaceholder")}
               />
+            </div>
+            <div>
+              <label className="label">
+                {t("dashboard.projectEmoji")} {newEmoji}
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {PROJECT_EMOJIS.map((em) => (
+                  <button
+                    key={em}
+                    type="button"
+                    onClick={() => setNewEmoji(em)}
+                    className={`text-lg w-8 h-8 flex items-center justify-center rounded-md border ${
+                      em === newEmoji
+                        ? "border-neon-cyan/70 bg-neon-cyan/10"
+                        : "border-ink-600 hover:border-slate-400"
+                    }`}
+                  >
+                    {em}
+                  </button>
+                ))}
+              </div>
             </div>
             {error && <p className="text-neon-red text-xs">{error}</p>}
             <button type="submit" disabled={busy} className="btn-primary w-full">

@@ -60,7 +60,9 @@ function validateExpenseInput(req, body) {
     return { error: "Todos los seleccionados en 'Para' deben ser miembros activos." };
   }
 
-  let category;
+  // La categoría es opcional, igual que la entidad -- un gasto no necesita
+  // tener ninguna de las dos asignada.
+  let category = null;
   if (categoryId) {
     category = db.prepare("SELECT * FROM categories WHERE id = ? AND project_id = ?").get(categoryId, req.project.id);
     if (!category) return { error: "Categoría inválida." };
@@ -69,16 +71,12 @@ function validateExpenseInput(req, body) {
     category = db.prepare("SELECT * FROM categories WHERE project_id = ? AND name = ?").get(req.project.id, trimmedCat);
     if (!category) {
       const info = db
-        .prepare("INSERT INTO categories (project_id, name, is_default) VALUES (?, ?, 0)")
+        .prepare("INSERT INTO categories (project_id, name) VALUES (?, ?)")
         .run(req.project.id, trimmedCat);
       category = db.prepare("SELECT * FROM categories WHERE id = ?").get(info.lastInsertRowid);
     }
-  } else {
-    return { error: "Seleccioná o creá una categoría." };
   }
 
-  // La entidad es opcional -- a diferencia de la categoría, un gasto no
-  // necesita tener una asignada.
   let entity = null;
   if (entityId) {
     entity = db.prepare("SELECT * FROM entities WHERE id = ? AND project_id = ?").get(entityId, req.project.id);
@@ -125,7 +123,7 @@ router.post("/", (req, res) => {
         `INSERT INTO expenses (project_id, category_id, entity_id, title, currency, amount_cents, paid_by, expense_date, created_by)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .run(req.project.id, category.id, entity ? entity.id : null, trimmedTitle, currency, amountCents, paidBy, date, req.user.id);
+      .run(req.project.id, category ? category.id : null, entity ? entity.id : null, trimmedTitle, currency, amountCents, paidBy, date, req.user.id);
     const expenseId = info.lastInsertRowid;
     const insertSplit = db.prepare(
       "INSERT INTO expense_splits (expense_id, user_id, share_cents) VALUES (?, ?, ?)"
@@ -155,7 +153,7 @@ router.put("/:expenseId", (req, res) => {
     db.prepare(
       `UPDATE expenses SET category_id = ?, entity_id = ?, title = ?, currency = ?, amount_cents = ?, paid_by = ?, expense_date = ?
        WHERE id = ?`
-    ).run(category.id, entity ? entity.id : null, trimmedTitle, currency, amountCents, paidBy, date, expense.id);
+    ).run(category ? category.id : null, entity ? entity.id : null, trimmedTitle, currency, amountCents, paidBy, date, expense.id);
     db.prepare("DELETE FROM expense_splits WHERE expense_id = ?").run(expense.id);
     const insertSplit = db.prepare(
       "INSERT INTO expense_splits (expense_id, user_id, share_cents) VALUES (?, ?, ?)"

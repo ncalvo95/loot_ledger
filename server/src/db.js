@@ -129,6 +129,89 @@ function migrateUsersInviteSupport() {
 
 migrateUsersInviteSupport();
 
+// Reconstruye "expenses" para que category_id sea opcional (igual que
+// entity_id) y suma "is_reimbursement": los saldos de deuda (antes
+// modelados como un gasto en una categoría especial "Reembolso") pasan a
+// ser un flag propio, en vez de depender de una categoría mágica. Las filas
+// que ya usaban esa categoría quedan con category_id NULL e
+// is_reimbursement=1, preservando el resto de sus datos (fecha, montos,
+// splits) tal cual.
+function migrateExpensesReimbursement() {
+  if (!tableExists("expenses")) return;
+  const row = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='expenses'").get();
+  if (row.sql.includes("is_reimbursement")) return;
+
+  db.pragma("foreign_keys = OFF");
+  const migrate = db.transaction(() => {
+    db.exec(`
+      CREATE TABLE expenses_new_v2 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        category_id INTEGER REFERENCES categories(id),
+        entity_id INTEGER REFERENCES entities(id),
+        title TEXT NOT NULL,
+        currency TEXT NOT NULL CHECK (currency IN ('EUR','USD','ARS')),
+        amount_cents INTEGER NOT NULL,
+        paid_by INTEGER NOT NULL REFERENCES users(id),
+        expense_date TEXT NOT NULL,
+        created_by INTEGER NOT NULL REFERENCES users(id),
+        is_reimbursement INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+    db.exec(`
+      INSERT INTO expenses_new_v2
+        (id, project_id, category_id, entity_id, title, currency, amount_cents, paid_by, expense_date, created_by, is_reimbursement, created_at)
+      SELECT
+        e.id, e.project_id,
+        CASE WHEN c.name = 'Reembolso' THEN NULL ELSE e.category_id END,
+        e.entity_id, e.title, e.currency, e.amount_cents, e.paid_by, e.expense_date, e.created_by,
+        CASE WHEN c.name = 'Reembolso' THEN 1 ELSE 0 END,
+        e.created_at
+      FROM expenses e LEFT JOIN categories c ON c.id = e.category_id
+    `);
+    db.exec("DROP TABLE expenses");
+    db.exec("ALTER TABLE expenses_new_v2 RENAME TO expenses");
+    db.exec(
+      "UPDATE sqlite_sequence SET seq = (SELECT COALESCE(MAX(id),0) FROM expenses) WHERE name = 'expenses'"
+    );
+    const violations = db.pragma("foreign_key_check");
+    if (violations.length) {
+      throw new Error("Migración de expenses (reembolso) dejó referencias FK rotas: " + JSON.stringify(violations));
+    }
+  });
+  migrate();
+  db.pragma("foreign_keys = ON");
+}
+
+migrateExpensesReimbursement();
+
+// Ahora que el reembolso ya no depende de una categoría, la categoría
+// "Reembolso" que se auto-creaba por proyecto queda huérfana: se borra, y
+// con ella el concepto de "categoría protegida" (is_default) deja de tener
+// ningún uso -- se saca la columna entera.
+function migrateCategoriesDropIsDefault() {
+  if (!tableExists("categories")) return;
+  const cols = db.prepare("PRAGMA table_info(categories)").all();
+  if (!cols.some((c) => c.name === "is_default")) return;
+
+  db.exec("DELETE FROM categories WHERE is_default = 1");
+  db.exec("ALTER TABLE categories DROP COLUMN is_default");
+}
+
+migrateCategoriesDropIsDefault();
+
+// ALTER TABLE ADD COLUMN sin DEFAULT no constante alcanza para "emoji": es
+// puramente decorativo, nunca hace falta reconstruir la tabla por esto.
+function migrateProjectsEmoji() {
+  if (!tableExists("projects")) return;
+  const row = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='projects'").get();
+  if (row.sql.includes("emoji")) return;
+  db.exec("ALTER TABLE projects ADD COLUMN emoji TEXT");
+}
+
+migrateProjectsEmoji();
+
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -145,6 +228,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS projects (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
+  emoji TEXT,
   owner_id INTEGER NOT NULL REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -164,7 +248,6 @@ CREATE TABLE IF NOT EXISTS categories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  is_default INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(project_id, name)
 );
@@ -180,7 +263,7 @@ CREATE TABLE IF NOT EXISTS entities (
 CREATE TABLE IF NOT EXISTS expenses (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  category_id INTEGER NOT NULL REFERENCES categories(id),
+  category_id INTEGER REFERENCES categories(id),
   entity_id INTEGER REFERENCES entities(id),
   title TEXT NOT NULL,
   currency TEXT NOT NULL CHECK (currency IN ('EUR','USD','ARS')),
@@ -188,6 +271,7 @@ CREATE TABLE IF NOT EXISTS expenses (
   paid_by INTEGER NOT NULL REFERENCES users(id),
   expense_date TEXT NOT NULL,
   created_by INTEGER NOT NULL REFERENCES users(id),
+  is_reimbursement INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

@@ -74,22 +74,12 @@ export default function CategoriesPanel({ projectId, categories, onChanged }) {
               ) : (
                 <>
                   <span className="badge border-neon-purple/50 text-neon-purple flex-1">{c.name}</span>
-                  {!c.is_default && (
-                    <>
-                      <button
-                        className="btn-secondary !px-2 !py-1 text-[10px]"
-                        onClick={() => startEdit(c)}
-                      >
-                        {t("common.edit")}
-                      </button>
-                      <button
-                        className="btn-danger !px-2 !py-1 text-[10px]"
-                        onClick={() => remove(c)}
-                      >
-                        {t("common.delete")}
-                      </button>
-                    </>
-                  )}
+                  <button className="btn-secondary !px-2 !py-1 text-[10px]" onClick={() => startEdit(c)}>
+                    {t("common.edit")}
+                  </button>
+                  <button className="btn-danger !px-2 !py-1 text-[10px]" onClick={() => remove(c)}>
+                    {t("common.delete")}
+                  </button>
                 </>
               )}
             </div>

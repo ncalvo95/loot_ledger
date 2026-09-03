@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { Loading } from "../components/ProtectedRoute.jsx";
 
 const CURRENCY_SYMBOL = { EUR: "€", USD: "$", ARS: "AR$" };
 
 export default function QuestsPage() {
+  const { user } = useAuth();
   const { t, tError } = useLanguage();
   const [quests, setQuests] = useState(null);
   const [error, setError] = useState("");
@@ -20,13 +22,15 @@ export default function QuestsPage() {
     load().catch((err) => setError(tError(err)));
   }, []);
 
-  const settle = async (projectId, counterpartId, currency) => {
+  const settle = async (projectId, counterpartId, currency, direction) => {
     if (!confirm(t("quests.settleConfirm"))) return;
     const key = `${projectId}-${counterpartId}-${currency}`;
     setSettlingKey(key);
     setError("");
+    const fromUserId = direction === "youOwe" ? user.id : counterpartId;
+    const toUserId = direction === "youOwe" ? counterpartId : user.id;
     try {
-      await api.post("/quests/settle", { projectId, counterpartId, currency });
+      await api.post("/quests/settle", { projectId, fromUserId, toUserId, currency });
       await load();
     } catch (err) {
       setError(tError(err));
@@ -98,7 +102,7 @@ export default function QuestsPage() {
                               <button
                                 className="btn-primary !px-2 !py-1 text-[10px]"
                                 disabled={busy}
-                                onClick={() => settle(line.projectId, cp.counterpartId, c.currency)}
+                                onClick={() => settle(line.projectId, cp.counterpartId, c.currency, line.direction)}
                               >
                                 {busy ? t("quests.settling") : t("quests.questComplete")}
                               </button>

@@ -22,7 +22,7 @@ export default function ExpenseForm({
   onCancel,
 }) {
   const { t, tError } = useLanguage();
-  const [categoryId, setCategoryId] = useState(editingExpense?.categoryId || categories[0]?.id || "");
+  const [categoryId, setCategoryId] = useState(editingExpense?.categoryId || "");
   const [newCategory, setNewCategory] = useState("");
   const [entityId, setEntityId] = useState(editingExpense?.entityId || "");
   const [newEntity, setNewEntity] = useState("");
@@ -71,7 +71,7 @@ export default function ExpenseForm({
       };
       if (newCategory.trim()) {
         payload.categoryName = newCategory.trim();
-      } else {
+      } else if (categoryId) {
         payload.categoryId = Number(categoryId);
       }
       if (newEntity.trim()) {
@@ -111,6 +111,7 @@ export default function ExpenseForm({
             }}
             disabled={!!newCategory}
           >
+            <option value="">{t("ledger.noCategory")}</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}

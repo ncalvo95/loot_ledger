@@ -20,7 +20,7 @@ export default function ExpenseList({ projectId, expenses, canManage, currentUse
   return (
     <div className="space-y-3">
       {expenses.map((e) => {
-        const isReimbursement = e.categoryName === "Reembolso";
+        const isReimbursement = e.isReimbursement;
         const canEdit = canManage || e.createdBy === currentUserId;
         return (
           <div
@@ -32,15 +32,15 @@ export default function ExpenseList({ projectId, expenses, canManage, currentUse
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-slate-100">{e.title}</span>
-                <span
-                  className={`badge ${
-                    isReimbursement
-                      ? "border-neon-gold/60 text-neon-gold"
-                      : "border-neon-purple/50 text-neon-purple"
-                  }`}
-                >
-                  {e.categoryName}
-                </span>
+                {isReimbursement ? (
+                  <span className="badge border-neon-gold/60 text-neon-gold">
+                    🔁 {t("ledger.reimbursementBadge")}
+                  </span>
+                ) : (
+                  <span className="badge border-neon-purple/50 text-neon-purple">
+                    {e.categoryName || t("ledger.noCategory")}
+                  </span>
+                )}
                 {e.entityName && (
                   <span className="badge border-neon-cyan/50 text-neon-cyan">{e.entityName}</span>
                 )}
