@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { api } from "../api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
@@ -10,11 +10,13 @@ import EntitiesPanel from "../components/EntitiesPanel.jsx";
 import BalanceView from "../components/BalanceView.jsx";
 import MembersPanel from "../components/MembersPanel.jsx";
 import ExportPanel from "../components/ExportPanel.jsx";
+import CloneProjectModal from "../components/CloneProjectModal.jsx";
 import { Loading } from "../components/ProtectedRoute.jsx";
 
 export default function ProjectPage() {
   const { id } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { t, tError } = useLanguage();
   const [detail, setDetail] = useState(null);
   const [expenses, setExpenses] = useState([]);
@@ -25,11 +27,13 @@ export default function ProjectPage() {
   const [filterMonth, setFilterMonth] = useState("");
   const [filterYear, setFilterYear] = useState("");
   const [error, setError] = useState("");
+  const [showClone, setShowClone] = useState(false);
 
+  const isIndividual = detail?.project.type === "individual";
   const TABS = [
     { key: "ledger", label: t("project.ledger") },
-    { key: "loot", label: t("project.loot") },
-    { key: "team", label: t("project.team") },
+    ...(isIndividual ? [] : [{ key: "loot", label: t("project.loot") }]),
+    ...(isIndividual ? [] : [{ key: "team", label: t("project.team") }]),
   ];
 
   const loadDetail = async () => {
@@ -52,6 +56,7 @@ export default function ProjectPage() {
 
   useEffect(() => {
     setError("");
+    setTab("ledger");
     loadDetail().catch((err) => setError(tError(err)));
   }, [id]);
 
@@ -92,7 +97,13 @@ export default function ProjectPage() {
             {detail.project.emoji || "🗺️"} {detail.project.name}
           </h1>
         </div>
-        <nav className="flex gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {isIndividual && detail.canManage && (
+            <button className="btn-secondary" onClick={() => setShowClone(true)}>
+              {t("project.cloneCta")}
+            </button>
+          )}
+          <nav className="flex gap-2">
           {TABS.map((tabItem) => (
             <button
               key={tabItem.key}
@@ -106,8 +117,20 @@ export default function ProjectPage() {
               {tabItem.label}
             </button>
           ))}
-        </nav>
+          </nav>
+        </div>
       </div>
+
+      {showClone && (
+        <CloneProjectModal
+          onClose={() => setShowClone(false)}
+          onConfirm={async (withExpenses) => {
+            const { project } = await api.post(`/projects/${id}/clone`, { withExpenses });
+            setShowClone(false);
+            navigate(`/projects/${project.id}`);
+          }}
+        />
+      )}
 
       {tab === "ledger" && (
         <div className="space-y-5">
@@ -176,6 +199,7 @@ export default function ProjectPage() {
               categories={detail.categories}
               entities={detail.entities}
               editingExpense={editingExpense}
+              individual={isIndividual}
               onCreated={async () => {
                 setShowForm(false);
                 setEditingExpense(null);

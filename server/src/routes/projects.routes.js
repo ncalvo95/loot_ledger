@@ -59,14 +59,15 @@ router.get("/", (req, res) => {
 });
 
 router.post("/", (req, res) => {
-  const { name, emoji } = req.body || {};
+  const { name, emoji, type } = req.body || {};
   if (!name || !name.trim()) return res.status(400).json({ error: "El nombre del proyecto es obligatorio." });
   const trimmedEmoji = (emoji || "").trim() || null;
+  const projectType = type === "individual" ? "individual" : "shared";
 
   const insertProject = db.transaction(() => {
     const info = db
-      .prepare("INSERT INTO projects (name, emoji, owner_id) VALUES (?, ?, ?)")
-      .run(name.trim(), trimmedEmoji, req.user.id);
+      .prepare("INSERT INTO projects (name, emoji, type, owner_id) VALUES (?, ?, ?, ?)")
+      .run(name.trim(), trimmedEmoji, projectType, req.user.id);
     const projectId = info.lastInsertRowid;
     db.prepare(
       "INSERT INTO project_members (project_id, user_id, status, role, added_by) VALUES (?, ?, 'member', 'owner', ?)"
@@ -106,9 +107,74 @@ router.get("/:id", loadProject, requireProjectAccess, (req, res) => {
   });
 });
 
+// Clona un proyecto individual como uno nuevo, grupal: copia categorías y
+// entidades siempre, y gastos solo si se pide -- en ese caso quedan todos
+// con el mismo "pagado por" (el único miembro que tenía el individual, que
+// sigue siendo el dueño del clon) hasta que alguien los reasigne a mano.
+router.post("/:id/clone", loadProject, requireProjectAccess, (req, res) => {
+  if (req.project.type !== "individual") {
+    return res.status(400).json({ error: "Solo se pueden clonar proyectos individuales." });
+  }
+  if (!canManageProject(req.project, req)) {
+    return res.status(403).json({ error: "No podés clonar este proyecto." });
+  }
+  const withExpenses = !!(req.body || {}).withExpenses;
+
+  const clone = db.transaction(() => {
+    const info = db
+      .prepare("INSERT INTO projects (name, emoji, type, owner_id) VALUES (?, ?, 'shared', ?)")
+      .run(req.project.name, req.project.emoji, req.project.owner_id);
+    const newProjectId = info.lastInsertRowid;
+    db.prepare(
+      "INSERT INTO project_members (project_id, user_id, status, role, added_by) VALUES (?, ?, 'member', 'owner', ?)"
+    ).run(newProjectId, req.project.owner_id, req.user.id);
+
+    const categoryMap = new Map();
+    for (const c of db.prepare("SELECT * FROM categories WHERE project_id = ?").all(req.project.id)) {
+      const r = db.prepare("INSERT INTO categories (project_id, name) VALUES (?, ?)").run(newProjectId, c.name);
+      categoryMap.set(c.id, r.lastInsertRowid);
+    }
+    const entityMap = new Map();
+    for (const e of db.prepare("SELECT * FROM entities WHERE project_id = ?").all(req.project.id)) {
+      const r = db.prepare("INSERT INTO entities (project_id, name) VALUES (?, ?)").run(newProjectId, e.name);
+      entityMap.set(e.id, r.lastInsertRowid);
+    }
+
+    if (withExpenses) {
+      const insertExpense = db.prepare(
+        `INSERT INTO expenses (project_id, category_id, entity_id, title, currency, amount_cents, paid_by, expense_date, created_by, is_reimbursement)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      );
+      const insertSplit = db.prepare(
+        "INSERT INTO expense_splits (expense_id, user_id, share_cents) VALUES (?, ?, ?)"
+      );
+      for (const e of db.prepare("SELECT * FROM expenses WHERE project_id = ?").all(req.project.id)) {
+        const newCategoryId = e.category_id ? categoryMap.get(e.category_id) || null : null;
+        const newEntityId = e.entity_id ? entityMap.get(e.entity_id) || null : null;
+        const r = insertExpense.run(
+          newProjectId, newCategoryId, newEntityId, e.title, e.currency, e.amount_cents,
+          e.paid_by, e.expense_date, req.user.id, e.is_reimbursement
+        );
+        const newExpenseId = r.lastInsertRowid;
+        for (const s of db.prepare("SELECT * FROM expense_splits WHERE expense_id = ?").all(e.id)) {
+          insertSplit.run(newExpenseId, s.user_id, s.share_cents);
+        }
+      }
+    }
+    return newProjectId;
+  });
+
+  const newProjectId = clone();
+  const project = db.prepare("SELECT * FROM projects WHERE id = ?").get(newProjectId);
+  res.status(201).json({ project });
+});
+
 router.post("/:id/members", loadProject, (req, res) => {
   if (!canManageProject(req.project, req)) {
     return res.status(403).json({ error: "Solo el administrador del proyecto puede agregar miembros." });
+  }
+  if (req.project.type === "individual") {
+    return res.status(400).json({ error: "Los proyectos individuales no admiten invitar a otros jugadores." });
   }
   const { username } = req.body || {};
   if (!username) return res.status(400).json({ error: "Indicá el nombre de usuario." });

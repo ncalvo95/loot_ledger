@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [invited, setInvited] = useState([]);
   const [newName, setNewName] = useState("");
   const [newEmoji, setNewEmoji] = useState(PROJECT_EMOJIS[0]);
+  const [newType, setNewType] = useState("shared");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -39,9 +40,10 @@ export default function Dashboard() {
     setBusy(true);
     setError("");
     try {
-      await api.post("/projects", { name: newName.trim(), emoji: newEmoji });
+      await api.post("/projects", { name: newName.trim(), emoji: newEmoji, type: newType });
       setNewName("");
       setNewEmoji(PROJECT_EMOJIS[0]);
+      setNewType("shared");
       await load();
     } catch (err) {
       setError(tError(err));
@@ -119,6 +121,11 @@ export default function Dashboard() {
                   <p className="text-xs text-slate-500">
                     {p.member_count} {t("dashboard.members")}
                   </p>
+                  {p.type === "individual" && (
+                    <span className="badge border-neon-gold/50 text-neon-gold mt-2 inline-block mr-2">
+                      {t("dashboard.typeIndividual")}
+                    </span>
+                  )}
                   {!p.is_member && (
                     <span className="badge border-neon-purple/50 text-neon-purple mt-2 inline-block">
                       {t("dashboard.viewOnly")}
@@ -163,6 +170,23 @@ export default function Dashboard() {
                     {em}
                   </button>
                 ))}
+              </div>
+            </div>
+            <div>
+              <label className="label">{t("dashboard.projectType")}</label>
+              <div className="flex gap-4 text-sm text-slate-300">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input type="radio" checked={newType === "shared"} onChange={() => setNewType("shared")} />
+                  {t("dashboard.typeShared")}
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={newType === "individual"}
+                    onChange={() => setNewType("individual")}
+                  />
+                  {t("dashboard.typeIndividual")}
+                </label>
               </div>
             </div>
             {error && <p className="text-neon-red text-xs">{error}</p>}

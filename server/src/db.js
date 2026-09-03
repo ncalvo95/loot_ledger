@@ -212,6 +212,48 @@ function migrateProjectsEmoji() {
 
 migrateProjectsEmoji();
 
+// Reconstruye "projects" para sumar "type" ('shared'/'individual'), con su
+// CHECK -- a diferencia de "emoji", ALTER TABLE ADD COLUMN no alcanza acá
+// porque SQLite no permite agregar una columna con CHECK así nomás. Mismo
+// cuidado de siempre: no renombrar la tabla original directamente, para no
+// romper las referencias FK de project_members/categories/entities/expenses.
+function migrateProjectsType() {
+  if (!tableExists("projects")) return;
+  const row = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='projects'").get();
+  if (row.sql.includes("type TEXT")) return;
+
+  db.pragma("foreign_keys = OFF");
+  const migrate = db.transaction(() => {
+    db.exec(`
+      CREATE TABLE projects_new_v2 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        emoji TEXT,
+        type TEXT NOT NULL DEFAULT 'shared' CHECK (type IN ('shared','individual')),
+        owner_id INTEGER NOT NULL REFERENCES users(id),
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+    db.exec(`
+      INSERT INTO projects_new_v2 (id, name, emoji, owner_id, created_at)
+      SELECT id, name, emoji, owner_id, created_at FROM projects
+    `);
+    db.exec("DROP TABLE projects");
+    db.exec("ALTER TABLE projects_new_v2 RENAME TO projects");
+    db.exec(
+      "UPDATE sqlite_sequence SET seq = (SELECT COALESCE(MAX(id),0) FROM projects) WHERE name = 'projects'"
+    );
+    const violations = db.pragma("foreign_key_check");
+    if (violations.length) {
+      throw new Error("Migración de projects (type) dejó referencias FK rotas: " + JSON.stringify(violations));
+    }
+  });
+  migrate();
+  db.pragma("foreign_keys = ON");
+}
+
+migrateProjectsType();
+
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -229,6 +271,7 @@ CREATE TABLE IF NOT EXISTS projects (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   emoji TEXT,
+  type TEXT NOT NULL DEFAULT 'shared' CHECK (type IN ('shared','individual')),
   owner_id INTEGER NOT NULL REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

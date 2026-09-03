@@ -18,6 +18,7 @@ export default function ExpenseForm({
   categories,
   entities,
   editingExpense,
+  individual,
   onCreated,
   onCancel,
 }) {
@@ -186,16 +187,18 @@ export default function ExpenseForm({
           </div>
         </div>
 
-        <div>
-          <label className="label">{t("ledger.paidBy")}</label>
-          <select className="field" value={paidBy} onChange={(e) => setPaidBy(e.target.value)}>
-            {members.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.username}
-              </option>
-            ))}
-          </select>
-        </div>
+        {!individual && (
+          <div>
+            <label className="label">{t("ledger.paidBy")}</label>
+            <select className="field" value={paidBy} onChange={(e) => setPaidBy(e.target.value)}>
+              {members.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.username}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div>
           <label className="label">{t("ledger.date")}</label>
@@ -203,33 +206,35 @@ export default function ExpenseForm({
         </div>
       </div>
 
-      <div>
-        <label className="label">{t("ledger.forWhom")}</label>
-        <div className="flex flex-wrap gap-2">
-          {members.map((m) => {
-            const checked = participantIds.includes(m.id);
-            return (
-              <label
-                key={m.id}
-                className={`badge cursor-pointer select-none ${
-                  checked
-                    ? "border-neon-cyan/70 text-neon-cyan bg-neon-cyan/10"
-                    : "border-ink-600 text-slate-400 hover:border-slate-400"
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  className="hidden"
-                  checked={checked}
-                  onChange={() => toggleParticipant(m.id)}
-                />
-                {checked ? "✓ " : ""}
-                {m.username}
-              </label>
-            );
-          })}
+      {!individual && (
+        <div>
+          <label className="label">{t("ledger.forWhom")}</label>
+          <div className="flex flex-wrap gap-2">
+            {members.map((m) => {
+              const checked = participantIds.includes(m.id);
+              return (
+                <label
+                  key={m.id}
+                  className={`badge cursor-pointer select-none ${
+                    checked
+                      ? "border-neon-cyan/70 text-neon-cyan bg-neon-cyan/10"
+                      : "border-ink-600 text-slate-400 hover:border-slate-400"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={checked}
+                    onChange={() => toggleParticipant(m.id)}
+                  />
+                  {checked ? "✓ " : ""}
+                  {m.username}
+                </label>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {error && <p className="text-neon-red text-sm">{error}</p>}
 
