@@ -254,6 +254,19 @@ function migrateProjectsType() {
 
 migrateProjectsType();
 
+// ALTER TABLE ADD COLUMN sin DEFAULT no constante alcanza: "paid_by_treasury"
+// marca un gasto como pagado desde el fondo común del proyecto en vez de por
+// un miembro -- en ese caso no genera expense_splits y queda afuera del
+// cálculo de balances entre personas (ver services/balances.js).
+function migrateExpensesTreasury() {
+  if (!tableExists("expenses")) return;
+  const row = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='expenses'").get();
+  if (row.sql.includes("paid_by_treasury")) return;
+  db.exec("ALTER TABLE expenses ADD COLUMN paid_by_treasury INTEGER NOT NULL DEFAULT 0");
+}
+
+migrateExpensesTreasury();
+
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -315,6 +328,33 @@ CREATE TABLE IF NOT EXISTS expenses (
   expense_date TEXT NOT NULL,
   created_by INTEGER NOT NULL REFERENCES users(id),
   is_reimbursement INTEGER NOT NULL DEFAULT 0,
+  paid_by_treasury INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS treasury_categories (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(project_id, name)
+);
+
+-- Aportes al fondo común (Treasury) de un proyecto. Los gastos pagados
+-- *desde* Treasury viven en "expenses" (con paid_by_treasury=1) -- siguen
+-- siendo gastos como cualquier otro, solo que no se reparten entre
+-- miembros. Los aportes en cambio no son un gasto de nadie, así que tienen
+-- su propia tabla.
+CREATE TABLE IF NOT EXISTS treasury_contributions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  category_id INTEGER REFERENCES treasury_categories(id),
+  concept TEXT NOT NULL,
+  currency TEXT NOT NULL CHECK (currency IN ('EUR','USD','ARS')),
+  amount_cents INTEGER NOT NULL,
+  contributed_by INTEGER NOT NULL REFERENCES users(id),
+  contribution_date TEXT NOT NULL,
+  created_by INTEGER NOT NULL REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -348,6 +388,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_expenses_project ON expenses(project_id);
+CREATE INDEX IF NOT EXISTS idx_treasury_contributions_project ON treasury_contributions(project_id);
 CREATE INDEX IF NOT EXISTS idx_expense_splits_expense ON expense_splits(expense_id);
 CREATE INDEX IF NOT EXISTS idx_project_members_project ON project_members(project_id);
 CREATE INDEX IF NOT EXISTS idx_project_members_user ON project_members(user_id);

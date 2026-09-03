@@ -35,8 +35,11 @@ function canEditExpense(req, expense) {
 }
 
 function validateExpenseInput(req, body) {
-  const { title, currency, amount, paidBy, date, categoryId, categoryName, entityId, entityName, participantIds } =
-    body || {};
+  const {
+    title, currency, amount, paidBy, date, categoryId, categoryName, entityId, entityName,
+    participantIds, paidByTreasury,
+  } = body || {};
+  const isTreasury = !!paidByTreasury && req.project.type !== "individual";
 
   const trimmedTitle = (title || "").trim();
   if (!trimmedTitle) return { error: "El título del gasto es obligatorio." };
@@ -44,7 +47,7 @@ function validateExpenseInput(req, body) {
   const amountCents = toCents(amount);
   if (amountCents === null) return { error: "El importe debe ser un número mayor a cero." };
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "Fecha inválida." };
-  if (!Array.isArray(participantIds) || participantIds.length === 0) {
+  if (!isTreasury && (!Array.isArray(participantIds) || participantIds.length === 0)) {
     return { error: "Seleccioná al menos una persona en 'Para'." };
   }
 
@@ -54,10 +57,14 @@ function validateExpenseInput(req, body) {
   if (!activeIds.has(Number(paidBy))) {
     return { error: "El pagador debe ser un miembro activo del proyecto." };
   }
-  const participants = participantIds.map(Number);
-  const invalidParticipant = participants.find((id) => !activeIds.has(id));
-  if (invalidParticipant) {
-    return { error: "Todos los seleccionados en 'Para' deben ser miembros activos." };
+  // Un gasto pagado desde Treasury no se reparte entre nadie: sale del
+  // fondo común, no del bolsillo de ningún miembro.
+  const participants = isTreasury ? [] : participantIds.map(Number);
+  if (!isTreasury) {
+    const invalidParticipant = participants.find((id) => !activeIds.has(id));
+    if (invalidParticipant) {
+      return { error: "Todos los seleccionados en 'Para' deben ser miembros activos." };
+    }
   }
 
   // La categoría es opcional, igual que la entidad -- un gasto no necesita
@@ -101,6 +108,7 @@ function validateExpenseInput(req, body) {
     category,
     entity,
     participants,
+    isTreasury,
   };
 }
 
@@ -113,17 +121,17 @@ router.get("/", (req, res) => {
 router.post("/", (req, res) => {
   const result = validateExpenseInput(req, req.body);
   if (result.error) return res.status(400).json({ error: result.error });
-  const { trimmedTitle, currency, amountCents, paidBy, date, category, entity, participants } = result;
+  const { trimmedTitle, currency, amountCents, paidBy, date, category, entity, participants, isTreasury } = result;
 
   const splits = splitCents(amountCents, participants);
 
   const createExpense = db.transaction(() => {
     const info = db
       .prepare(
-        `INSERT INTO expenses (project_id, category_id, entity_id, title, currency, amount_cents, paid_by, expense_date, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO expenses (project_id, category_id, entity_id, title, currency, amount_cents, paid_by, expense_date, created_by, paid_by_treasury)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .run(req.project.id, category ? category.id : null, entity ? entity.id : null, trimmedTitle, currency, amountCents, paidBy, date, req.user.id);
+      .run(req.project.id, category ? category.id : null, entity ? entity.id : null, trimmedTitle, currency, amountCents, paidBy, date, req.user.id, isTreasury ? 1 : 0);
     const expenseId = info.lastInsertRowid;
     const insertSplit = db.prepare(
       "INSERT INTO expense_splits (expense_id, user_id, share_cents) VALUES (?, ?, ?)"
@@ -145,15 +153,15 @@ router.put("/:expenseId", (req, res) => {
 
   const result = validateExpenseInput(req, req.body);
   if (result.error) return res.status(400).json({ error: result.error });
-  const { trimmedTitle, currency, amountCents, paidBy, date, category, entity, participants } = result;
+  const { trimmedTitle, currency, amountCents, paidBy, date, category, entity, participants, isTreasury } = result;
 
   const splits = splitCents(amountCents, participants);
 
   const updateExpense = db.transaction(() => {
     db.prepare(
-      `UPDATE expenses SET category_id = ?, entity_id = ?, title = ?, currency = ?, amount_cents = ?, paid_by = ?, expense_date = ?
+      `UPDATE expenses SET category_id = ?, entity_id = ?, title = ?, currency = ?, amount_cents = ?, paid_by = ?, expense_date = ?, paid_by_treasury = ?
        WHERE id = ?`
-    ).run(category ? category.id : null, entity ? entity.id : null, trimmedTitle, currency, amountCents, paidBy, date, expense.id);
+    ).run(category ? category.id : null, entity ? entity.id : null, trimmedTitle, currency, amountCents, paidBy, date, isTreasury ? 1 : 0, expense.id);
     db.prepare("DELETE FROM expense_splits WHERE expense_id = ?").run(expense.id);
     const insertSplit = db.prepare(
       "INSERT INTO expense_splits (expense_id, user_id, share_cents) VALUES (?, ?, ?)"

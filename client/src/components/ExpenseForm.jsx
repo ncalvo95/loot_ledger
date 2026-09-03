@@ -35,8 +35,10 @@ export default function ExpenseForm({
   const [participantIds, setParticipantIds] = useState(
     editingExpense ? editingExpense.participants.map((p) => p.userId) : members.map((m) => m.id)
   );
+  const [paidByTreasury, setPaidByTreasury] = useState(!!editingExpense?.isTreasury);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const hideSplit = individual || paidByTreasury;
 
   const toggleParticipant = (id) => {
     setParticipantIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -56,7 +58,7 @@ export default function ExpenseForm({
   const submit = async (e) => {
     e.preventDefault();
     setError("");
-    if (participantIds.length === 0) {
+    if (!hideSplit && participantIds.length === 0) {
       setError(t("ledger.forWhomError"));
       return;
     }
@@ -69,6 +71,7 @@ export default function ExpenseForm({
         paidBy: Number(paidBy),
         date,
         participantIds,
+        paidByTreasury: !individual && paidByTreasury,
       };
       if (newCategory.trim()) {
         payload.categoryName = newCategory.trim();
@@ -207,6 +210,17 @@ export default function ExpenseForm({
       </div>
 
       {!individual && (
+        <label className="flex items-center gap-2 text-sm text-slate-300 select-none cursor-pointer">
+          <input
+            type="checkbox"
+            checked={paidByTreasury}
+            onChange={(e) => setPaidByTreasury(e.target.checked)}
+          />
+          {t("ledger.paidByTreasury")}
+        </label>
+      )}
+
+      {!hideSplit && (
         <div>
           <label className="label">{t("ledger.forWhom")}</label>
           <div className="flex flex-wrap gap-2">

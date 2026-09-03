@@ -14,6 +14,7 @@ const categoriesRoutes = require("./routes/categories.routes");
 const entitiesRoutes = require("./routes/entities.routes");
 const expensesRoutes = require("./routes/expenses.routes");
 const balancesRoutes = require("./routes/balances.routes");
+const treasuryRoutes = require("./routes/treasury.routes");
 const exportRoutes = require("./routes/export.routes");
 const questsRoutes = require("./routes/quests.routes");
 const { MOUNT_PATH } = require("./base-path");
@@ -44,6 +45,7 @@ router.use("/api/projects/:id/categories", categoriesRoutes);
 router.use("/api/projects/:id/entities", entitiesRoutes);
 router.use("/api/projects/:id/expenses", expensesRoutes);
 router.use("/api/projects/:id/balances", balancesRoutes);
+router.use("/api/projects/:id/treasury", treasuryRoutes);
 router.use("/api/projects/:id/export", exportRoutes);
 router.use("/api/quests", questsRoutes);
 

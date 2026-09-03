@@ -8,6 +8,7 @@ import ExpenseList from "../components/ExpenseList.jsx";
 import CategoriesPanel from "../components/CategoriesPanel.jsx";
 import EntitiesPanel from "../components/EntitiesPanel.jsx";
 import BalanceView from "../components/BalanceView.jsx";
+import TreasuryPanel from "../components/TreasuryPanel.jsx";
 import MembersPanel from "../components/MembersPanel.jsx";
 import ExportPanel from "../components/ExportPanel.jsx";
 import CloneProjectModal from "../components/CloneProjectModal.jsx";
@@ -32,8 +33,13 @@ export default function ProjectPage() {
   const isIndividual = detail?.project.type === "individual";
   const TABS = [
     { key: "ledger", label: t("project.ledger") },
-    ...(isIndividual ? [] : [{ key: "loot", label: t("project.loot") }]),
-    ...(isIndividual ? [] : [{ key: "team", label: t("project.team") }]),
+    ...(isIndividual
+      ? []
+      : [
+          { key: "loot", label: t("project.loot") },
+          { key: "treasury", label: t("project.treasury") },
+          { key: "team", label: t("project.team") },
+        ]),
   ];
 
   const loadDetail = async () => {
@@ -235,6 +241,8 @@ export default function ProjectPage() {
           onSettled={refreshAll}
         />
       )}
+
+      {tab === "treasury" && <TreasuryPanel projectId={id} />}
 
       {tab === "team" && (
         <MembersPanel

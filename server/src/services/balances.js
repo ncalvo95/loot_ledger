@@ -16,10 +16,13 @@ function computeProjectBalances(projectId) {
   const memberMap = new Map(allMembers.map((m) => [m.id, m]));
 
   const result = currencies.map((currency) => {
+    // Los gastos pagados desde Treasury (paid_by_treasury=1) quedan afuera:
+    // salen del fondo común, no del bolsillo de quien los cargó, así que no
+    // deben sumarle nada a su balance personal.
     const paid = db
       .prepare(
         `SELECT paid_by AS user_id, SUM(amount_cents) AS total
-         FROM expenses WHERE project_id = ? AND currency = ? GROUP BY paid_by`
+         FROM expenses WHERE project_id = ? AND currency = ? AND paid_by_treasury = 0 GROUP BY paid_by`
       )
       .all(projectId, currency);
     const owed = db

@@ -5,7 +5,7 @@ const MONTH_NAMES = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
 ];
 
-function buildExportWorkbook({ project, expenses, balances, filterLabel }) {
+function buildExportWorkbook({ project, expenses, balances, filterLabel, treasuryMovements = [], treasuryBalance = [] }) {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Loot Ledger";
   workbook.created = new Date();
@@ -97,6 +97,43 @@ function buildExportWorkbook({ project, expenses, balances, filterLabel }) {
     columns: [{ name: "Debe" }, { name: "A" }, { name: "Moneda" }, { name: "Monto" }],
     rows: txRows.length ? txRows : [["", "", "", ""]],
   });
+
+  if (treasuryMovements.length || treasuryBalance.length) {
+    const treasurySheet = workbook.addWorksheet("Treasury");
+    treasurySheet.columns = [{ width: 12 }, { width: 14 }, { width: 30 }, { width: 18 }, { width: 10 }, { width: 14 }, { width: 18 }];
+    treasurySheet.getCell("A1").value = `Treasury - ${project.name}`;
+    treasurySheet.getCell("A1").font = { bold: true, size: 14 };
+    treasurySheet.getCell("A2").value =
+      "Balance actual: " + treasuryBalance.map((b) => `${b.currency} ${b.balance.toFixed(2)}`).join(" · ");
+    treasurySheet.getCell("A2").font = { italic: true, color: { argb: "FF666666" } };
+
+    const treasuryRows = treasuryMovements.map((m) => [
+      m.date,
+      m.kind === "contribution" ? "Aporte" : "Gasto",
+      m.concept,
+      m.categoryName || "",
+      m.currency,
+      m.amount,
+      m.username,
+    ]);
+
+    treasurySheet.addTable({
+      name: "TablaTreasury",
+      ref: "A4",
+      headerRow: true,
+      style: { theme: "TableStyleMedium9", showRowStripes: true },
+      columns: [
+        { name: "Fecha" },
+        { name: "Tipo" },
+        { name: "Concepto" },
+        { name: "Categoría" },
+        { name: "Moneda" },
+        { name: "Importe", filterButton: true },
+        { name: "Quién" },
+      ],
+      rows: treasuryRows.length ? treasuryRows : [["", "", "", "", "", "", ""]],
+    });
+  }
 
   return workbook;
 }

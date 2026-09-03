@@ -26,7 +26,7 @@ export default function ExpenseList({ projectId, expenses, canManage, currentUse
           <div
             key={e.id}
             className={`panel p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 ${
-              isReimbursement ? "border-neon-gold/40" : ""
+              isReimbursement ? "border-neon-gold/40" : e.isTreasury ? "border-neon-gold/30" : ""
             }`}
           >
             <div className="flex-1 min-w-0">
@@ -44,10 +44,21 @@ export default function ExpenseList({ projectId, expenses, canManage, currentUse
                 {e.entityName && (
                   <span className="badge border-neon-cyan/50 text-neon-cyan">{e.entityName}</span>
                 )}
+                {e.isTreasury && (
+                  <span className="badge border-neon-gold/60 text-neon-gold">🏦 {t("ledger.treasuryBadge")}</span>
+                )}
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                {e.date} · {t("ledger.paidByLine")} <span className="text-slate-300">{e.paidByUsername}</span> ·{" "}
-                {t("ledger.forLine")} {e.participants.map((p) => p.username).join(", ")}
+                {e.isTreasury ? (
+                  <>
+                    {e.date} · {t("ledger.chargedByLine")} <span className="text-slate-300">{e.paidByUsername}</span>
+                  </>
+                ) : (
+                  <>
+                    {e.date} · {t("ledger.paidByLine")} <span className="text-slate-300">{e.paidByUsername}</span> ·{" "}
+                    {t("ledger.forLine")} {e.participants.map((p) => p.username).join(", ")}
+                  </>
+                )}
               </p>
             </div>
             <div className="flex items-center gap-4">

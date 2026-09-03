@@ -3,6 +3,7 @@ const { requireAuth } = require("../auth");
 const { loadProject, requireProjectAccess } = require("../services/projectAccess");
 const { listExpenses } = require("../services/expenses");
 const { computeProjectBalances } = require("../services/balances");
+const { listTreasuryMovements, computeTreasuryBalance } = require("../services/treasury");
 const { buildExportWorkbook, buildFilterLabel } = require("../services/exportExcel");
 
 const router = express.Router({ mergeParams: true });
@@ -29,8 +30,17 @@ router.get("/", async (req, res) => {
   const expenses = listExpenses(req.project.id, filters);
   const balances = computeProjectBalances(req.project.id);
   const filterLabel = buildFilterLabel({ scope, month, year });
+  const treasuryMovements = req.project.type === "individual" ? [] : listTreasuryMovements(req.project.id, filters);
+  const treasuryBalance = req.project.type === "individual" ? [] : computeTreasuryBalance(req.project.id);
 
-  const workbook = buildExportWorkbook({ project: req.project, expenses, balances, filterLabel });
+  const workbook = buildExportWorkbook({
+    project: req.project,
+    expenses,
+    balances,
+    filterLabel,
+    treasuryMovements,
+    treasuryBalance,
+  });
 
   const safeName = req.project.name.replace(/[^a-zA-Z0-9-_]+/g, "_");
   const suffix = scope === "month" ? `_${year}-${String(month).padStart(2, "0")}` : scope === "year" ? `_${year}` : "_historico";

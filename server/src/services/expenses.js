@@ -55,6 +55,7 @@ function listExpenses(projectId, { month, year } = {}) {
     createdBy: row.created_by,
     createdAt: row.created_at,
     isReimbursement: !!row.is_reimbursement,
+    isTreasury: !!row.paid_by_treasury,
     participants: splitsByExpense[row.id] || [],
   }));
 }
