@@ -106,18 +106,23 @@ export default function ProjectPage() {
             {detail.project.emoji || "🗺️"} {detail.project.name}
           </h1>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* min-w-0 deja que este bloque se achique dentro del flex-wrap de
+            arriba, y overflow-x-auto lo hace scrollear horizontalmente en
+            vez de estirar toda la página en pantallas angostas (celular) --
+            shrink-0 en cada botón evita que se compriman en vez de
+            scrollear. */}
+        <div className="flex items-center gap-2 overflow-x-auto min-w-0 max-w-full pb-1">
           {isIndividual && detail.canManage && (
-            <button className="btn-secondary" onClick={() => setShowClone(true)}>
+            <button className="btn-secondary shrink-0" onClick={() => setShowClone(true)}>
               {t("project.cloneCta")}
             </button>
           )}
-          <nav className="flex gap-2">
+          <nav className="flex gap-2 shrink-0">
           {TABS.map((tabItem) => (
             <button
               key={tabItem.key}
               onClick={() => setTab(tabItem.key)}
-              className={`btn ${
+              className={`btn shrink-0 ${
                 tab === tabItem.key
                   ? "bg-neon-cyan/15 text-neon-cyan border border-neon-cyan/60 shadow-neon"
                   : "bg-ink-800 text-slate-400 border border-ink-600 hover:text-slate-100"
@@ -127,7 +132,7 @@ export default function ProjectPage() {
             </button>
           ))}
           </nav>
-          <button className="btn-secondary" onClick={() => setShowExport(true)}>
+          <button className="btn-secondary shrink-0" onClick={() => setShowExport(true)}>
             📤 {t("ledger.exportCta")}
           </button>
         </div>
