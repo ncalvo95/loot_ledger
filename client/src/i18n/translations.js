@@ -39,6 +39,7 @@ export const translations = {
       menu: "Menú",
       styleGamer: "Gamer",
       styleSimple: "Simple",
+      defaultCurrency: "Moneda por defecto",
     },
     sessions: {
       title: "Sesiones activas",
@@ -120,6 +121,10 @@ export const translations = {
       cloneSubtitle: "El clon arranca con tus mismas categorías y entidades. Elegí si también copia el historial de gastos (todos quedan a tu nombre hasta que los reasignen) o arranca vacío.",
       cloneWithExpenses: "Clonar con gastos",
       cloneWithoutExpenses: "Clonar sin gastos",
+      deleteCta: "Eliminar proyecto",
+      deleteTitle: "Eliminar proyecto",
+      deleteDescription: "Esto borra el proyecto para siempre: gastos, categorías, entidades, Treasury y reglas de Respawn. No se puede deshacer.",
+      deleteDescriptionShared: "Esto borra el proyecto para siempre, incluyendo el historial de gastos de TODOS los demás miembros. No se puede deshacer.",
     },
     treasury: {
       addFunds: "Agregar fondo",
@@ -346,6 +351,7 @@ export const translations = {
       menu: "Menu",
       styleGamer: "Gamer",
       styleSimple: "Simple",
+      defaultCurrency: "Default currency",
     },
     sessions: {
       title: "Active sessions",
@@ -426,6 +432,10 @@ export const translations = {
       cloneSubtitle: "The clone starts with the same categories and entities. Choose whether it also copies the expense history (everything stays under your name until reassigned) or starts empty.",
       cloneWithExpenses: "Clone with expenses",
       cloneWithoutExpenses: "Clone without expenses",
+      deleteCta: "Delete project",
+      deleteTitle: "Delete project",
+      deleteDescription: "This deletes the project forever: expenses, categories, entities, Treasury and Respawn rules. This can't be undone.",
+      deleteDescriptionShared: "This deletes the project forever, including the expense history of ALL other members. This can't be undone.",
     },
     treasury: {
       addFunds: "Add funds",
@@ -643,6 +653,8 @@ export const translations = {
     ledger: {
       addExpense: "Agregar gasto",
       empty: "Todavía no hay gastos registrados.",
+      paidByTreasury: "Pagar desde el fondo común",
+      treasuryBadge: "Fondo común",
     },
     loot: {
       empty: "Todavía no hay gastos para calcular los balances.",
@@ -686,6 +698,8 @@ export const translations = {
     ledger: {
       addExpense: "Add expense",
       empty: "No expenses logged yet.",
+      paidByTreasury: "Pay from the shared fund",
+      treasuryBadge: "Shared fund",
     },
     loot: {
       empty: "No expenses yet to calculate the balances.",

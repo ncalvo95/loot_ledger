@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import LanguageToggle from "./LanguageToggle.jsx";
 import StyleToggle from "./StyleToggle.jsx";
+
+const CURRENCIES = ["EUR", "USD", "ARS"];
 
 // Dropdown de cuenta ("Consola"/"Configuracion"): agrupa todo lo que es
 // preferencia/config personal (idioma, modo gamer/simple, contraseña,
@@ -9,6 +12,7 @@ import StyleToggle from "./StyleToggle.jsx";
 // suelto por cada cosa.
 export default function AccountMenu({ onChangePassword, onSessions, onLogout, className = "" }) {
   const { t } = useLanguage();
+  const { user, setDefaultCurrency } = useAuth();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -36,6 +40,20 @@ export default function AccountMenu({ onChangePassword, onSessions, onLogout, cl
           <div className="flex items-center gap-2 flex-wrap">
             <LanguageToggle />
             <StyleToggle />
+          </div>
+          <div className="border-t border-ink-700 pt-2">
+            <label className="label !mb-1">{t("nav.defaultCurrency")}</label>
+            <select
+              className="field !py-1"
+              value={user?.defaultCurrency || "EUR"}
+              onChange={(e) => setDefaultCurrency(e.target.value)}
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="border-t border-ink-700 pt-2 space-y-1">
             <button

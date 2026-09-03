@@ -276,6 +276,7 @@ CREATE TABLE IF NOT EXISTS users (
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('active','pending','rejected','removed','invited')),
   invite_code TEXT,
   invite_code_claimed_at TEXT,
+  default_currency TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -450,6 +451,18 @@ function migrateAddLabelToSessions() {
 }
 
 migrateAddLabelToSessions();
+
+// Moneda que el usuario eligió como default, para no tener que cambiarla
+// cada vez en los formularios (gastos, Treasury, Respawn). NULL = todavía
+// no eligió ninguna, y la app cae al default histórico (EUR).
+function migrateAddDefaultCurrencyToUsers() {
+  if (!tableExists("users")) return;
+  const row = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").get();
+  if (row.sql.includes("default_currency")) return;
+  db.exec("ALTER TABLE users ADD COLUMN default_currency TEXT");
+}
+
+migrateAddDefaultCurrencyToUsers();
 
 function seedAdmin() {
   const existing = db.prepare("SELECT id FROM users WHERE username = ?").get("administrator");

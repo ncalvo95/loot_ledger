@@ -13,6 +13,7 @@ import RespawnPanel from "../components/RespawnPanel.jsx";
 import MembersPanel from "../components/MembersPanel.jsx";
 import ExportModal from "../components/ExportModal.jsx";
 import CloneProjectModal from "../components/CloneProjectModal.jsx";
+import PurgeConfirmModal from "../components/PurgeConfirmModal.jsx";
 import { Loading } from "../components/ProtectedRoute.jsx";
 
 export default function ProjectPage() {
@@ -31,6 +32,7 @@ export default function ProjectPage() {
   const [error, setError] = useState("");
   const [showClone, setShowClone] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
 
   const isIndividual = detail?.project.type === "individual";
   const TABS = [
@@ -106,23 +108,22 @@ export default function ProjectPage() {
             {detail.project.emoji || "🗺️"} {detail.project.name}
           </h1>
         </div>
-        {/* min-w-0 deja que este bloque se achique dentro del flex-wrap de
-            arriba, y overflow-x-auto lo hace scrollear horizontalmente en
-            vez de estirar toda la página en pantallas angostas (celular) --
-            shrink-0 en cada botón evita que se compriman en vez de
-            scrollear. */}
-        <div className="flex items-center gap-2 overflow-x-auto min-w-0 max-w-full pb-1">
+        {/* flex-wrap acá (y en el <nav> de adentro) para que los botones
+            pasen a una segunda línea en pantallas angostas en vez de forzar
+            un ancho fijo -- eso es lo que hacía que la página entera fuera
+            más ancha que la pantalla en el celular. */}
+        <div className="flex items-center gap-2 flex-wrap">
           {isIndividual && detail.canManage && (
-            <button className="btn-secondary shrink-0" onClick={() => setShowClone(true)}>
+            <button className="btn-secondary" onClick={() => setShowClone(true)}>
               {t("project.cloneCta")}
             </button>
           )}
-          <nav className="flex gap-2 shrink-0">
+          <nav className="flex flex-wrap gap-2">
           {TABS.map((tabItem) => (
             <button
               key={tabItem.key}
               onClick={() => setTab(tabItem.key)}
-              className={`btn shrink-0 ${
+              className={`btn ${
                 tab === tabItem.key
                   ? "bg-neon-cyan/15 text-neon-cyan border border-neon-cyan/60 shadow-neon"
                   : "bg-ink-800 text-slate-400 border border-ink-600 hover:text-slate-100"
@@ -132,9 +133,14 @@ export default function ProjectPage() {
             </button>
           ))}
           </nav>
-          <button className="btn-secondary shrink-0" onClick={() => setShowExport(true)}>
+          <button className="btn-secondary" onClick={() => setShowExport(true)}>
             📤 {t("ledger.exportCta")}
           </button>
+          {detail.canManage && (
+            <button className="btn-danger" onClick={() => setShowDelete(true)}>
+              {t("project.deleteCta")}
+            </button>
+          )}
         </div>
       </div>
 
@@ -150,6 +156,21 @@ export default function ProjectPage() {
       )}
 
       {showExport && <ExportModal projectId={id} onClose={() => setShowExport(false)} />}
+
+      {showDelete && (
+        <PurgeConfirmModal
+          title={t("project.deleteTitle")}
+          description={
+            activeMembers.length > 1 ? t("project.deleteDescriptionShared") : t("project.deleteDescription")
+          }
+          confirmWord={detail.project.name}
+          onConfirm={async () => {
+            await api.delete(`/projects/${id}`);
+            navigate("/");
+          }}
+          onClose={() => setShowDelete(false)}
+        />
+      )}
 
       {tab === "ledger" && (
         <div className="space-y-5">

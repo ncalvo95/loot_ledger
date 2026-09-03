@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const db = require("../db");
-const { validateUsername, validatePassword } = require("../validators");
+const { validateUsername, validatePassword, validateCurrency } = require("../validators");
 const { setAuthCookie, clearAuthCookie, requireAuth, COOKIE_NAME } = require("../auth");
 const { parseSqliteUTC } = require("../utils");
 const {
@@ -55,7 +55,13 @@ setInterval(() => {
 }, 60 * 60 * 1000).unref();
 
 function publicUser(user) {
-  return { id: user.id, username: user.username, role: user.role, status: user.status };
+  return {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    status: user.status,
+    defaultCurrency: user.default_currency || null,
+  };
 }
 
 router.post("/register", (req, res) => {
@@ -267,6 +273,16 @@ router.post("/change-password", requireAuth, (req, res) => {
   const hash = bcrypt.hashSync(newPassword, 10);
   db.prepare("UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?").run(hash, user.id);
   revokeOtherSessions(user.id, req.sessionId);
+  res.json({ ok: true });
+});
+
+router.post("/default-currency", requireAuth, (req, res) => {
+  const { currency } = req.body || {};
+  if (!validateCurrency(currency)) return res.status(400).json({ error: "Moneda inválida." });
+  db.prepare("UPDATE users SET default_currency = ?, updated_at = datetime('now') WHERE id = ?").run(
+    currency,
+    req.user.id
+  );
   res.json({ ok: true });
 });
 

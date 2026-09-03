@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 
 const CURRENCIES = [
@@ -9,14 +10,14 @@ const CURRENCIES = [
 ];
 const CURRENCY_SYMBOL = { EUR: "€", USD: "$", ARS: "AR$" };
 
-function emptyForm(members, individual) {
+function emptyForm(members, individual, defaultCurrency) {
   return {
     title: "",
     categoryId: "",
     newCategory: "",
     entityId: "",
     newEntity: "",
-    currency: "EUR",
+    currency: defaultCurrency || "EUR",
     amount: "",
     paidBy: members[0]?.id || "",
     dayOfMonth: "1",
@@ -27,11 +28,12 @@ function emptyForm(members, individual) {
 
 export default function RespawnPanel({ projectId, members, categories, entities, individual, canManage }) {
   const { t, tError } = useLanguage();
+  const { user } = useAuth();
   const [rules, setRules] = useState(null);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState(emptyForm(members, individual));
+  const [form, setForm] = useState(emptyForm(members, individual, user?.defaultCurrency));
   const [busy, setBusy] = useState(false);
 
   const load = async () => {
@@ -54,7 +56,7 @@ export default function RespawnPanel({ projectId, members, categories, entities,
 
   const startCreate = () => {
     setEditingId(null);
-    setForm(emptyForm(members, individual));
+    setForm(emptyForm(members, individual, user?.defaultCurrency));
     setShowForm(true);
   };
 

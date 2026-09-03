@@ -48,9 +48,24 @@ export function AuthProvider({ children }) {
     await api.post("/auth/forgot-password", { username });
   };
 
+  const setDefaultCurrency = async (currency) => {
+    await api.post("/auth/default-currency", { currency });
+    setUser((u) => (u ? { ...u, defaultCurrency: currency } : u));
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, logout, refresh, changePassword, forgotPassword }}
+      value={{
+        user,
+        loading,
+        login,
+        register,
+        logout,
+        refresh,
+        changePassword,
+        forgotPassword,
+        setDefaultCurrency,
+      }}
     >
       {children}
     </AuthContext.Provider>

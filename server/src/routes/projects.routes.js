@@ -111,6 +111,20 @@ router.get("/:id", loadProject, requireProjectAccess, (req, res) => {
 // entidades siempre, y gastos solo si se pide -- en ese caso quedan todos
 // con el mismo "pagado por" (el único miembro que tenía el individual, que
 // sigue siendo el dueño del clon) hasta que alguien los reasigne a mano.
+// Borra el proyecto directamente (a diferencia del "purgar" del panel de
+// admin, no exige que ya no queden miembros activos: es el dueño/admin del
+// proyecto decidiendo borrar SU proyecto, no una limpieza de cuentas
+// abandonadas). Las FK con ON DELETE CASCADE se encargan de members,
+// categories, entities, expenses (y expense_splits a través de esas),
+// treasury_categories, treasury_contributions y recurring_expenses.
+router.delete("/:id", loadProject, requireProjectAccess, (req, res) => {
+  if (!canManageProject(req.project, req)) {
+    return res.status(403).json({ error: "Solo el administrador del proyecto puede eliminarlo." });
+  }
+  db.prepare("DELETE FROM projects WHERE id = ?").run(req.project.id);
+  res.json({ ok: true });
+});
+
 router.post("/:id/clone", loadProject, requireProjectAccess, (req, res) => {
   if (req.project.type !== "individual") {
     return res.status(400).json({ error: "Solo se pueden clonar proyectos individuales." });

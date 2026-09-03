@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 
 const CURRENCIES = [
@@ -15,12 +16,13 @@ function today() {
 
 export default function TreasuryPanel({ projectId }) {
   const { t, tError } = useLanguage();
+  const { user } = useAuth();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
 
   const [concept, setConcept] = useState("");
-  const [currency, setCurrency] = useState("EUR");
+  const [currency, setCurrency] = useState(user?.defaultCurrency || "EUR");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(today());
   const [categoryId, setCategoryId] = useState("");

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { api } from "../api.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 
 const CURRENCIES = [
@@ -23,12 +24,13 @@ export default function ExpenseForm({
   onCancel,
 }) {
   const { t, tError } = useLanguage();
+  const { user } = useAuth();
   const [categoryId, setCategoryId] = useState(editingExpense?.categoryId || "");
   const [newCategory, setNewCategory] = useState("");
   const [entityId, setEntityId] = useState(editingExpense?.entityId || "");
   const [newEntity, setNewEntity] = useState("");
   const [title, setTitle] = useState(editingExpense?.title || "");
-  const [currency, setCurrency] = useState(editingExpense?.currency || "EUR");
+  const [currency, setCurrency] = useState(editingExpense?.currency || user?.defaultCurrency || "EUR");
   const [amount, setAmount] = useState(editingExpense ? String(editingExpense.amount) : "");
   const [paidBy, setPaidBy] = useState(editingExpense?.paidBy || members[0]?.id || "");
   const [date, setDate] = useState(editingExpense?.date || today());
