@@ -11,7 +11,7 @@ import BalanceView from "../components/BalanceView.jsx";
 import TreasuryPanel from "../components/TreasuryPanel.jsx";
 import RespawnPanel from "../components/RespawnPanel.jsx";
 import MembersPanel from "../components/MembersPanel.jsx";
-import ExportPanel from "../components/ExportPanel.jsx";
+import ExportModal from "../components/ExportModal.jsx";
 import CloneProjectModal from "../components/CloneProjectModal.jsx";
 import { Loading } from "../components/ProtectedRoute.jsx";
 
@@ -30,6 +30,7 @@ export default function ProjectPage() {
   const [filterYear, setFilterYear] = useState("");
   const [error, setError] = useState("");
   const [showClone, setShowClone] = useState(false);
+  const [showExport, setShowExport] = useState(false);
 
   const isIndividual = detail?.project.type === "individual";
   const TABS = [
@@ -140,9 +141,15 @@ export default function ProjectPage() {
         />
       )}
 
+      {showExport && <ExportModal projectId={id} onClose={() => setShowExport(false)} />}
+
       {tab === "ledger" && (
         <div className="space-y-5">
-          <ExportPanel projectId={id} />
+          <div className="flex justify-end">
+            <button className="btn-secondary" onClick={() => setShowExport(true)}>
+              📤 {t("ledger.exportCta")}
+            </button>
+          </div>
 
           <CategoriesPanel
             projectId={id}
