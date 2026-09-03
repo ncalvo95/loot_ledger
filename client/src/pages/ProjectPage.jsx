@@ -127,6 +127,9 @@ export default function ProjectPage() {
             </button>
           ))}
           </nav>
+          <button className="btn-secondary" onClick={() => setShowExport(true)}>
+            📤 {t("ledger.exportCta")}
+          </button>
         </div>
       </div>
 
@@ -145,12 +148,6 @@ export default function ProjectPage() {
 
       {tab === "ledger" && (
         <div className="space-y-5">
-          <div className="flex justify-end">
-            <button className="btn-secondary" onClick={() => setShowExport(true)}>
-              📤 {t("ledger.exportCta")}
-            </button>
-          </div>
-
           <CategoriesPanel
             projectId={id}
             categories={detail.categories}
