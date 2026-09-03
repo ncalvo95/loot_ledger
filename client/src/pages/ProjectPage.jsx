@@ -9,6 +9,7 @@ import CategoriesPanel from "../components/CategoriesPanel.jsx";
 import EntitiesPanel from "../components/EntitiesPanel.jsx";
 import BalanceView from "../components/BalanceView.jsx";
 import TreasuryPanel from "../components/TreasuryPanel.jsx";
+import RespawnPanel from "../components/RespawnPanel.jsx";
 import MembersPanel from "../components/MembersPanel.jsx";
 import ExportPanel from "../components/ExportPanel.jsx";
 import CloneProjectModal from "../components/CloneProjectModal.jsx";
@@ -34,10 +35,11 @@ export default function ProjectPage() {
   const TABS = [
     { key: "ledger", label: t("project.ledger") },
     ...(isIndividual
-      ? []
+      ? [{ key: "respawn", label: t("project.respawn") }]
       : [
           { key: "loot", label: t("project.loot") },
           { key: "treasury", label: t("project.treasury") },
+          { key: "respawn", label: t("project.respawn") },
           { key: "team", label: t("project.team") },
         ]),
   ];
@@ -243,6 +245,17 @@ export default function ProjectPage() {
       )}
 
       {tab === "treasury" && <TreasuryPanel projectId={id} />}
+
+      {tab === "respawn" && (
+        <RespawnPanel
+          projectId={id}
+          members={memberOptions}
+          categories={detail.categories}
+          entities={detail.entities}
+          individual={isIndividual}
+          canManage={detail.canManage}
+        />
+      )}
 
       {tab === "team" && (
         <MembersPanel

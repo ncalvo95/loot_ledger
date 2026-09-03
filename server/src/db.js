@@ -332,6 +332,30 @@ CREATE TABLE IF NOT EXISTS expenses (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Reglas de gastos recurrentes ("Respawn"): se generan solas como un gasto
+-- normal de "expenses" cada mes, en day_of_month (o el último día del mes
+-- si ese día no existe, ej. 31 en febrero). last_run_month evita generar
+-- dos veces en el mismo mes. participant_ids va como JSON (array de ids) en
+-- vez de una tabla de join aparte -- nunca se consulta por usuario
+-- individual, solo se lee entera al generar el gasto.
+CREATE TABLE IF NOT EXISTS recurring_expenses (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  category_id INTEGER REFERENCES categories(id),
+  entity_id INTEGER REFERENCES entities(id),
+  currency TEXT NOT NULL CHECK (currency IN ('EUR','USD','ARS')),
+  amount_cents INTEGER NOT NULL,
+  paid_by INTEGER NOT NULL REFERENCES users(id),
+  paid_by_treasury INTEGER NOT NULL DEFAULT 0,
+  participant_ids TEXT NOT NULL DEFAULT '[]',
+  day_of_month INTEGER NOT NULL DEFAULT 1 CHECK (day_of_month BETWEEN 1 AND 31),
+  active INTEGER NOT NULL DEFAULT 1,
+  last_run_month TEXT,
+  created_by INTEGER NOT NULL REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS treasury_categories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -389,6 +413,8 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 CREATE INDEX IF NOT EXISTS idx_expenses_project ON expenses(project_id);
 CREATE INDEX IF NOT EXISTS idx_treasury_contributions_project ON treasury_contributions(project_id);
+CREATE INDEX IF NOT EXISTS idx_recurring_expenses_project ON recurring_expenses(project_id);
+CREATE INDEX IF NOT EXISTS idx_recurring_expenses_active ON recurring_expenses(active);
 CREATE INDEX IF NOT EXISTS idx_expense_splits_expense ON expense_splits(expense_id);
 CREATE INDEX IF NOT EXISTS idx_project_members_project ON project_members(project_id);
 CREATE INDEX IF NOT EXISTS idx_project_members_user ON project_members(user_id);

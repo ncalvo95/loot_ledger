@@ -6,6 +6,7 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 
 require("./db"); // inicializa la base de datos y crea el usuario administrator por defecto
+const { runDueRecurringRules } = require("./services/recurring");
 
 const authRoutes = require("./routes/auth.routes");
 const adminRoutes = require("./routes/admin.routes");
@@ -15,6 +16,7 @@ const entitiesRoutes = require("./routes/entities.routes");
 const expensesRoutes = require("./routes/expenses.routes");
 const balancesRoutes = require("./routes/balances.routes");
 const treasuryRoutes = require("./routes/treasury.routes");
+const recurringRoutes = require("./routes/recurring.routes");
 const exportRoutes = require("./routes/export.routes");
 const questsRoutes = require("./routes/quests.routes");
 const { MOUNT_PATH } = require("./base-path");
@@ -46,6 +48,7 @@ router.use("/api/projects/:id/entities", entitiesRoutes);
 router.use("/api/projects/:id/expenses", expensesRoutes);
 router.use("/api/projects/:id/balances", balancesRoutes);
 router.use("/api/projects/:id/treasury", treasuryRoutes);
+router.use("/api/projects/:id/recurring", recurringRoutes);
 router.use("/api/projects/:id/export", exportRoutes);
 router.use("/api/quests", questsRoutes);
 
@@ -77,3 +80,9 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Loot Ledger escuchando en http://localhost:${PORT}`);
 });
+
+// "Respawn": genera los gastos recurrentes que ya llegaron a su día del mes.
+// Corre al bootear (cubre el caso de que la Pi haya estado apagada el día
+// exacto) y después cada una hora -- no hace falta un cron real para esto.
+runDueRecurringRules();
+setInterval(runDueRecurringRules, 60 * 60 * 1000).unref();
