@@ -28,6 +28,8 @@ function mapRule(row) {
     dayOfMonth: row.day_of_month,
     active: !!row.active,
     lastRunMonth: row.last_run_month,
+    installmentCurrent: row.installment_current,
+    installmentTotal: row.installment_total,
   };
 }
 
@@ -55,14 +57,14 @@ function listRecurringRules(projectId) {
 
 function createRecurringRule({
   projectId, kind, title, categoryId, entityId, treasuryCategoryId, currency, amountCents,
-  paidBy, isTreasury, participantIds, dayOfMonth, createdBy,
+  paidBy, isTreasury, participantIds, dayOfMonth, createdBy, installmentCurrent, installmentTotal,
 }) {
   const isContribution = kind === "contribution";
   const info = db
     .prepare(
       `INSERT INTO recurring_expenses
-        (project_id, kind, title, category_id, entity_id, treasury_category_id, currency, amount_cents, paid_by, paid_by_treasury, participant_ids, day_of_month, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        (project_id, kind, title, category_id, entity_id, treasury_category_id, currency, amount_cents, paid_by, paid_by_treasury, participant_ids, day_of_month, created_by, installment_current, installment_total)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       projectId,
@@ -77,7 +79,9 @@ function createRecurringRule({
       isContribution ? 0 : isTreasury ? 1 : 0,
       JSON.stringify(isContribution ? [] : participantIds || []),
       dayOfMonth,
-      createdBy
+      createdBy,
+      isContribution ? null : installmentCurrent || null,
+      isContribution ? null : installmentTotal || null
     );
   return info.lastInsertRowid;
 }
@@ -116,16 +120,28 @@ function updateRecurringRule(id, fields) {
       : rule.participant_ids,
     day_of_month: fields.dayOfMonth !== undefined ? fields.dayOfMonth : rule.day_of_month,
     active: fields.active !== undefined ? (fields.active ? 1 : 0) : rule.active,
+    installment_current: isContribution
+      ? null
+      : fields.installmentCurrent !== undefined
+      ? fields.installmentCurrent
+      : rule.installment_current,
+    installment_total: isContribution
+      ? null
+      : fields.installmentTotal !== undefined
+      ? fields.installmentTotal
+      : rule.installment_total,
   };
 
   db.prepare(
     `UPDATE recurring_expenses SET
       kind = ?, title = ?, category_id = ?, entity_id = ?, treasury_category_id = ?, currency = ?, amount_cents = ?,
-      paid_by = ?, paid_by_treasury = ?, participant_ids = ?, day_of_month = ?, active = ?
+      paid_by = ?, paid_by_treasury = ?, participant_ids = ?, day_of_month = ?, active = ?,
+      installment_current = ?, installment_total = ?
      WHERE id = ?`
   ).run(
     next.kind, next.title, next.category_id, next.entity_id, next.treasury_category_id, next.currency,
-    next.amount_cents, next.paid_by, next.paid_by_treasury, next.participant_ids, next.day_of_month, next.active, id
+    next.amount_cents, next.paid_by, next.paid_by_treasury, next.participant_ids, next.day_of_month, next.active,
+    next.installment_current, next.installment_total, id
   );
   return db.prepare("SELECT * FROM recurring_expenses WHERE id = ?").get(id);
 }
@@ -183,23 +199,36 @@ function runDueRecurringRules() {
 
     const participantIds = JSON.parse(rule.participant_ids || "[]");
     const splits = rule.paid_by_treasury ? [] : splitCents(rule.amount_cents, participantIds);
+    const isLastInstallment = rule.installment_total && rule.installment_current >= rule.installment_total;
 
     const run = db.transaction(() => {
       const info = db
         .prepare(
-          `INSERT INTO expenses (project_id, category_id, entity_id, title, currency, amount_cents, paid_by, expense_date, created_by, paid_by_treasury)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO expenses (project_id, category_id, entity_id, title, currency, amount_cents, paid_by, expense_date, created_by, paid_by_treasury, installment_current, installment_total)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .run(
           rule.project_id, rule.category_id, rule.entity_id, rule.title, rule.currency,
-          rule.amount_cents, rule.paid_by, runDate, rule.created_by, rule.paid_by_treasury
+          rule.amount_cents, rule.paid_by, runDate, rule.created_by, rule.paid_by_treasury,
+          rule.installment_total ? rule.installment_current : null,
+          rule.installment_total ? rule.installment_total : null
         );
       const expenseId = info.lastInsertRowid;
       const insertSplit = db.prepare(
         "INSERT INTO expense_splits (expense_id, user_id, share_cents) VALUES (?, ?, ?)"
       );
       for (const s of splits) insertSplit.run(expenseId, s.userId, s.shareCents);
-      db.prepare("UPDATE recurring_expenses SET last_run_month = ? WHERE id = ?").run(currentMonthKey, rule.id);
+
+      // Después de generar la última cuota, la regla se borra sola de
+      // Respawn (ya cumplió su propósito) -- si no, sigue como cualquier
+      // regla y solo avanza el contador de cuota.
+      if (isLastInstallment) {
+        db.prepare("DELETE FROM recurring_expenses WHERE id = ?").run(rule.id);
+      } else {
+        db.prepare(
+          "UPDATE recurring_expenses SET last_run_month = ?, installment_current = ? WHERE id = ?"
+        ).run(currentMonthKey, rule.installment_total ? rule.installment_current + 1 : null, rule.id);
+      }
     });
     run();
     generated += 1;

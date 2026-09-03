@@ -330,6 +330,8 @@ CREATE TABLE IF NOT EXISTS expenses (
   created_by INTEGER NOT NULL REFERENCES users(id),
   is_reimbursement INTEGER NOT NULL DEFAULT 0,
   paid_by_treasury INTEGER NOT NULL DEFAULT 0,
+  installment_current INTEGER,
+  installment_total INTEGER,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -355,6 +357,8 @@ CREATE TABLE IF NOT EXISTS recurring_expenses (
   last_run_month TEXT,
   kind TEXT NOT NULL DEFAULT 'expense',
   treasury_category_id INTEGER REFERENCES treasury_categories(id),
+  installment_current INTEGER,
+  installment_total INTEGER,
   created_by INTEGER NOT NULL REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -484,6 +488,31 @@ function migrateRecurringExpensesContribution() {
 }
 
 migrateRecurringExpensesContribution();
+
+// Cuotas: una regla de Respawn puede generar una serie de gastos numerados
+// (ej. "3/6") en vez de repetirse para siempre. installment_current es el
+// número de la PRÓXIMA cuota a generar; al generarla se copia a la cuota
+// del gasto y se incrementa -- cuando supera installment_total, la regla se
+// borra sola (ver runDueRecurringRules). Ambas columnas quedan NULL cuando
+// la regla no usa cuotas (el respawn de siempre, indefinido).
+function migrateInstallments() {
+  if (tableExists("recurring_expenses")) {
+    const row = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='recurring_expenses'").get();
+    if (!row.sql.includes("installment_current")) {
+      db.exec("ALTER TABLE recurring_expenses ADD COLUMN installment_current INTEGER");
+      db.exec("ALTER TABLE recurring_expenses ADD COLUMN installment_total INTEGER");
+    }
+  }
+  if (tableExists("expenses")) {
+    const row = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='expenses'").get();
+    if (!row.sql.includes("installment_current")) {
+      db.exec("ALTER TABLE expenses ADD COLUMN installment_current INTEGER");
+      db.exec("ALTER TABLE expenses ADD COLUMN installment_total INTEGER");
+    }
+  }
+}
+
+migrateInstallments();
 
 function seedAdmin() {
   const existing = db.prepare("SELECT id FROM users WHERE username = ?").get("administrator");

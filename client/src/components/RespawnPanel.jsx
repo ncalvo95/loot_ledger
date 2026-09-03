@@ -26,6 +26,9 @@ function emptyForm(members, individual, defaultCurrency) {
     dayOfMonth: "1",
     paidByTreasury: false,
     participantIds: individual ? [] : members.map((m) => m.id),
+    useInstallments: false,
+    installmentTotal: "",
+    installmentCurrent: "1",
   };
 }
 
@@ -89,6 +92,9 @@ export default function RespawnPanel({ projectId, members, categories, entities,
       dayOfMonth: String(rule.dayOfMonth),
       paidByTreasury: rule.isTreasury,
       participantIds: rule.participantIds,
+      useInstallments: !!rule.installmentTotal,
+      installmentTotal: rule.installmentTotal ? String(rule.installmentTotal) : "",
+      installmentCurrent: rule.installmentCurrent ? String(rule.installmentCurrent) : "1",
     });
     setShowForm(true);
   };
@@ -123,6 +129,10 @@ export default function RespawnPanel({ projectId, members, categories, entities,
         else if (form.categoryId) payload.categoryId = Number(form.categoryId);
         if (form.newEntity.trim()) payload.entityName = form.newEntity.trim();
         else if (form.entityId) payload.entityId = Number(form.entityId);
+        if (form.useInstallments) {
+          payload.installmentTotal = form.installmentTotal;
+          payload.installmentCurrent = form.installmentCurrent;
+        }
       }
 
       if (editingId) {
@@ -354,6 +364,46 @@ export default function RespawnPanel({ projectId, members, categories, entities,
             </label>
           )}
 
+          {!isContribution && (
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm text-slate-300 select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.useInstallments}
+                  onChange={(e) => setForm((f) => ({ ...f, useInstallments: e.target.checked }))}
+                />
+                {t("respawn.installments")}
+              </label>
+              {form.useInstallments && (
+                <div className="grid grid-cols-2 gap-3 max-w-xs">
+                  <div>
+                    <label className="label !mb-1">{t("respawn.installmentTotal")}</label>
+                    <input
+                      type="number"
+                      min="2"
+                      className="field"
+                      value={form.installmentTotal}
+                      onChange={(e) => setForm((f) => ({ ...f, installmentTotal: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="label !mb-1">{t("respawn.installmentCurrent")}</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max={form.installmentTotal || undefined}
+                      className="field"
+                      value={form.installmentCurrent}
+                      onChange={(e) => setForm((f) => ({ ...f, installmentCurrent: e.target.value }))}
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {!hideSplit && (
             <div>
               <label className="label">{t("ledger.forWhom")}</label>
@@ -438,6 +488,11 @@ export default function RespawnPanel({ projectId, members, categories, entities,
                       )}
                       {rule.isTreasury && (
                         <span className="badge border-neon-gold/60 text-neon-gold">🏦 {t("ledger.treasuryBadge")}</span>
+                      )}
+                      {rule.installmentTotal && (
+                        <span className="badge border-neon-cyan/50 text-neon-cyan">
+                          🧾 {t("respawn.installmentBadge")} {rule.installmentCurrent}/{rule.installmentTotal}
+                        </span>
                       )}
                     </>
                   )}

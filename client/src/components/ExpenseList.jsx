@@ -47,6 +47,11 @@ export default function ExpenseList({ projectId, expenses, canManage, currentUse
                 {e.isTreasury && (
                   <span className="badge border-neon-gold/60 text-neon-gold">🏦 {t("ledger.treasuryBadge")}</span>
                 )}
+                {e.installmentTotal && (
+                  <span className="badge border-neon-cyan/50 text-neon-cyan">
+                    🧾 {t("respawn.installmentBadge")} {e.installmentCurrent}/{e.installmentTotal}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-500 mt-1">
                 {e.isTreasury ? (

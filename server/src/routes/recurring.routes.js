@@ -37,6 +37,7 @@ function validateRuleInput(req, body) {
   const {
     title, currency, amount, paidBy, categoryId, categoryName, entityId, entityName,
     dayOfMonth, participantIds, paidByTreasury, kind, treasuryCategoryId, treasuryCategoryName,
+    installmentCurrent, installmentTotal,
   } = body || {};
   const isIndividual = req.project.type === "individual";
   const isContribution = !isIndividual && kind === "contribution";
@@ -54,6 +55,20 @@ function validateRuleInput(req, body) {
   const activeIds = new Set(activeMembers.map((m) => m.id));
   if (!activeIds.has(Number(paidBy))) {
     return { error: "El pagador debe ser un miembro activo del proyecto." };
+  }
+
+  // Cuotas: solo tiene sentido en un gasto normal (no en un aporte a
+  // Treasury). "installmentTotal" es la cantidad total de cuotas y
+  // "installmentCurrent" cuál se está cargando ahora (ej. 3 de 6).
+  let installments = { installmentCurrent: null, installmentTotal: null };
+  if (!isContribution && installmentTotal !== undefined && installmentTotal !== null && installmentTotal !== "") {
+    const total = Number(installmentTotal);
+    const current = Number(installmentCurrent);
+    if (!Number.isInteger(total) || total < 2) return { error: "El total de cuotas debe ser un número entero mayor a 1." };
+    if (!Number.isInteger(current) || current < 1 || current > total) {
+      return { error: "La cuota actual debe ser un número entre 1 y el total de cuotas." };
+    }
+    installments = { installmentCurrent: current, installmentTotal: total };
   }
 
   if (isContribution) {
@@ -110,6 +125,8 @@ function validateRuleInput(req, body) {
     kind: "expense",
     trimmedTitle, currency, amountCents, paidBy: Number(paidBy),
     category, entity, participants, isTreasury, dayOfMonth: day,
+    installmentCurrent: installments.installmentCurrent,
+    installmentTotal: installments.installmentTotal,
   };
 }
 
@@ -135,6 +152,8 @@ router.post("/", requireManage, (req, res) => {
     participantIds: result.participants,
     dayOfMonth: result.dayOfMonth,
     createdBy: req.user.id,
+    installmentCurrent: result.installmentCurrent,
+    installmentTotal: result.installmentTotal,
   });
   res.status(201).json({ id });
 });
@@ -167,6 +186,8 @@ router.patch("/:ruleId", requireManage, (req, res) => {
     participantIds: result.participants,
     dayOfMonth: result.dayOfMonth,
     active: req.body.active !== undefined ? !!req.body.active : !!rule.active,
+    installmentCurrent: result.installmentCurrent,
+    installmentTotal: result.installmentTotal,
   });
   res.json({ ok: true, rule: updated });
 });

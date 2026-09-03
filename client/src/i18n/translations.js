@@ -152,6 +152,10 @@ export const translations = {
       kindExpense: "Gasto",
       kindContribution: "Aporte al fondo común",
       contributedBy: "Aportado por",
+      installments: "Cuotas",
+      installmentTotal: "Total de cuotas",
+      installmentCurrent: "Cuota actual",
+      installmentBadge: "Cuota",
     },
     ledger: {
       exportCta: "Exportar",
@@ -467,6 +471,10 @@ export const translations = {
       kindExpense: "Expense",
       kindContribution: "Contribution to shared fund",
       contributedBy: "Contributed by",
+      installments: "Installments",
+      installmentTotal: "Total installments",
+      installmentCurrent: "Current installment",
+      installmentBadge: "Installment",
     },
     ledger: {
       exportCta: "Export",

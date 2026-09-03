@@ -29,6 +29,7 @@ export default function ProjectPage() {
   const [editingExpense, setEditingExpense] = useState(null);
   const [filterMonth, setFilterMonth] = useState("");
   const [filterYear, setFilterYear] = useState("");
+  const [onlyInstallments, setOnlyInstallments] = useState(false);
   const [error, setError] = useState("");
   const [showClone, setShowClone] = useState(false);
   const [showExport, setShowExport] = useState(false);
@@ -215,6 +216,14 @@ export default function ProjectPage() {
                   {t("ledger.clearFilter")}
                 </button>
               )}
+              <label className="flex items-center gap-1.5 text-xs text-slate-400 select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={onlyInstallments}
+                  onChange={(e) => setOnlyInstallments(e.target.checked)}
+                />
+                🧾 {t("respawn.installmentBadge")}
+              </label>
             </div>
             {!showForm && (
               <button
@@ -252,7 +261,7 @@ export default function ProjectPage() {
 
           <ExpenseList
             projectId={id}
-            expenses={expenses}
+            expenses={onlyInstallments ? expenses.filter((e) => e.installmentTotal) : expenses}
             canManage={detail.canManage}
             currentUserId={user.id}
             onChanged={refreshAll}
