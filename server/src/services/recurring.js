@@ -15,8 +15,10 @@ function mapRule(row) {
   return {
     id: row.id,
     projectId: row.project_id,
+    kind: row.kind || "expense",
     title: row.title,
     categoryId: row.category_id,
+    treasuryCategoryId: row.treasury_category_id,
     entityId: row.entity_id,
     currency: row.currency,
     amount: row.amount_cents / 100,
@@ -32,10 +34,12 @@ function mapRule(row) {
 function listRecurringRules(projectId) {
   return db
     .prepare(
-      `SELECT r.*, c.name AS category_name, ent.name AS entity_name, u.username AS paid_by_username
+      `SELECT r.*, c.name AS category_name, ent.name AS entity_name, u.username AS paid_by_username,
+              tc.name AS treasury_category_name
        FROM recurring_expenses r
        LEFT JOIN categories c ON c.id = r.category_id
        LEFT JOIN entities ent ON ent.id = r.entity_id
+       LEFT JOIN treasury_categories tc ON tc.id = r.treasury_category_id
        JOIN users u ON u.id = r.paid_by
        WHERE r.project_id = ? ORDER BY r.day_of_month ASC, r.id ASC`
     )
@@ -45,22 +49,35 @@ function listRecurringRules(projectId) {
       categoryName: row.category_name,
       entityName: row.entity_name,
       paidByUsername: row.paid_by_username,
+      treasuryCategoryName: row.treasury_category_name,
     }));
 }
 
 function createRecurringRule({
-  projectId, title, categoryId, entityId, currency, amountCents,
+  projectId, kind, title, categoryId, entityId, treasuryCategoryId, currency, amountCents,
   paidBy, isTreasury, participantIds, dayOfMonth, createdBy,
 }) {
+  const isContribution = kind === "contribution";
   const info = db
     .prepare(
       `INSERT INTO recurring_expenses
-        (project_id, title, category_id, entity_id, currency, amount_cents, paid_by, paid_by_treasury, participant_ids, day_of_month, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        (project_id, kind, title, category_id, entity_id, treasury_category_id, currency, amount_cents, paid_by, paid_by_treasury, participant_ids, day_of_month, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
-      projectId, title, categoryId || null, entityId || null, currency, amountCents,
-      paidBy, isTreasury ? 1 : 0, JSON.stringify(participantIds || []), dayOfMonth, createdBy
+      projectId,
+      isContribution ? "contribution" : "expense",
+      title,
+      isContribution ? null : categoryId || null,
+      isContribution ? null : entityId || null,
+      isContribution ? treasuryCategoryId || null : null,
+      currency,
+      amountCents,
+      paidBy,
+      isContribution ? 0 : isTreasury ? 1 : 0,
+      JSON.stringify(isContribution ? [] : participantIds || []),
+      dayOfMonth,
+      createdBy
     );
   return info.lastInsertRowid;
 }
@@ -69,28 +86,46 @@ function updateRecurringRule(id, fields) {
   const rule = db.prepare("SELECT * FROM recurring_expenses WHERE id = ?").get(id);
   if (!rule) return null;
 
+  const nextKind = fields.kind !== undefined ? fields.kind : rule.kind || "expense";
+  const isContribution = nextKind === "contribution";
+
   const next = {
+    kind: nextKind,
     title: fields.title !== undefined ? fields.title : rule.title,
-    category_id: fields.categoryId !== undefined ? fields.categoryId : rule.category_id,
-    entity_id: fields.entityId !== undefined ? fields.entityId : rule.entity_id,
+    category_id: isContribution ? null : fields.categoryId !== undefined ? fields.categoryId : rule.category_id,
+    entity_id: isContribution ? null : fields.entityId !== undefined ? fields.entityId : rule.entity_id,
+    treasury_category_id: isContribution
+      ? fields.treasuryCategoryId !== undefined
+        ? fields.treasuryCategoryId
+        : rule.treasury_category_id
+      : null,
     currency: fields.currency !== undefined ? fields.currency : rule.currency,
     amount_cents: fields.amountCents !== undefined ? fields.amountCents : rule.amount_cents,
     paid_by: fields.paidBy !== undefined ? fields.paidBy : rule.paid_by,
-    paid_by_treasury: fields.isTreasury !== undefined ? (fields.isTreasury ? 1 : 0) : rule.paid_by_treasury,
-    participant_ids:
-      fields.participantIds !== undefined ? JSON.stringify(fields.participantIds) : rule.participant_ids,
+    paid_by_treasury: isContribution
+      ? 0
+      : fields.isTreasury !== undefined
+      ? fields.isTreasury
+        ? 1
+        : 0
+      : rule.paid_by_treasury,
+    participant_ids: isContribution
+      ? "[]"
+      : fields.participantIds !== undefined
+      ? JSON.stringify(fields.participantIds)
+      : rule.participant_ids,
     day_of_month: fields.dayOfMonth !== undefined ? fields.dayOfMonth : rule.day_of_month,
     active: fields.active !== undefined ? (fields.active ? 1 : 0) : rule.active,
   };
 
   db.prepare(
     `UPDATE recurring_expenses SET
-      title = ?, category_id = ?, entity_id = ?, currency = ?, amount_cents = ?,
+      kind = ?, title = ?, category_id = ?, entity_id = ?, treasury_category_id = ?, currency = ?, amount_cents = ?,
       paid_by = ?, paid_by_treasury = ?, participant_ids = ?, day_of_month = ?, active = ?
      WHERE id = ?`
   ).run(
-    next.title, next.category_id, next.entity_id, next.currency, next.amount_cents,
-    next.paid_by, next.paid_by_treasury, next.participant_ids, next.day_of_month, next.active, id
+    next.kind, next.title, next.category_id, next.entity_id, next.treasury_category_id, next.currency,
+    next.amount_cents, next.paid_by, next.paid_by_treasury, next.participant_ids, next.day_of_month, next.active, id
   );
   return db.prepare("SELECT * FROM recurring_expenses WHERE id = ?").get(id);
 }
@@ -127,7 +162,25 @@ function runDueRecurringRules() {
     const targetDay = Math.min(rule.day_of_month, lastDayOfMonth(year, month));
     if (day < targetDay) continue;
 
-    const expenseDate = targetDateForMonth(year, month, rule.day_of_month);
+    const runDate = targetDateForMonth(year, month, rule.day_of_month);
+
+    if (rule.kind === "contribution") {
+      const run = db.transaction(() => {
+        db.prepare(
+          `INSERT INTO treasury_contributions
+            (project_id, category_id, concept, currency, amount_cents, contributed_by, contribution_date, created_by)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        ).run(
+          rule.project_id, rule.treasury_category_id, rule.title, rule.currency,
+          rule.amount_cents, rule.paid_by, runDate, rule.created_by
+        );
+        db.prepare("UPDATE recurring_expenses SET last_run_month = ? WHERE id = ?").run(currentMonthKey, rule.id);
+      });
+      run();
+      generated += 1;
+      continue;
+    }
+
     const participantIds = JSON.parse(rule.participant_ids || "[]");
     const splits = rule.paid_by_treasury ? [] : splitCents(rule.amount_cents, participantIds);
 
@@ -139,7 +192,7 @@ function runDueRecurringRules() {
         )
         .run(
           rule.project_id, rule.category_id, rule.entity_id, rule.title, rule.currency,
-          rule.amount_cents, rule.paid_by, expenseDate, rule.created_by, rule.paid_by_treasury
+          rule.amount_cents, rule.paid_by, runDate, rule.created_by, rule.paid_by_treasury
         );
       const expenseId = info.lastInsertRowid;
       const insertSplit = db.prepare(

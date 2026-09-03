@@ -12,11 +12,14 @@ const CURRENCY_SYMBOL = { EUR: "€", USD: "$", ARS: "AR$" };
 
 function emptyForm(members, individual, defaultCurrency) {
   return {
+    kind: "expense",
     title: "",
     categoryId: "",
     newCategory: "",
     entityId: "",
     newEntity: "",
+    treasuryCategoryId: "",
+    newTreasuryCategory: "",
     currency: defaultCurrency || "EUR",
     amount: "",
     paidBy: members[0]?.id || "",
@@ -35,6 +38,7 @@ export default function RespawnPanel({ projectId, members, categories, entities,
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm(members, individual, user?.defaultCurrency));
   const [busy, setBusy] = useState(false);
+  const [treasuryCategories, setTreasuryCategories] = useState([]);
 
   const load = async () => {
     const res = await api.get(`/projects/${projectId}/recurring`);
@@ -44,6 +48,14 @@ export default function RespawnPanel({ projectId, members, categories, entities,
   useEffect(() => {
     load().catch((err) => setError(tError(err)));
   }, [projectId]);
+
+  useEffect(() => {
+    if (individual) return;
+    api
+      .get(`/projects/${projectId}/treasury`)
+      .then((res) => setTreasuryCategories(res.categories))
+      .catch(() => {});
+  }, [projectId, individual]);
 
   const toggleParticipant = (id) => {
     setForm((f) => ({
@@ -63,11 +75,14 @@ export default function RespawnPanel({ projectId, members, categories, entities,
   const startEdit = (rule) => {
     setEditingId(rule.id);
     setForm({
+      kind: rule.kind || "expense",
       title: rule.title,
       categoryId: rule.categoryId || "",
       newCategory: "",
       entityId: rule.entityId || "",
       newEntity: "",
+      treasuryCategoryId: rule.treasuryCategoryId || "",
+      newTreasuryCategory: "",
       currency: rule.currency,
       amount: String(rule.amount),
       paidBy: rule.paidBy,
@@ -78,10 +93,12 @@ export default function RespawnPanel({ projectId, members, categories, entities,
     setShowForm(true);
   };
 
+  const isContribution = !individual && form.kind === "contribution";
+
   const submit = async (e) => {
     e.preventDefault();
     setError("");
-    const hideSplit = individual || form.paidByTreasury;
+    const hideSplit = individual || form.paidByTreasury || isContribution;
     if (!hideSplit && form.participantIds.length === 0) {
       setError(t("ledger.forWhomError"));
       return;
@@ -89,18 +106,24 @@ export default function RespawnPanel({ projectId, members, categories, entities,
     setBusy(true);
     try {
       const payload = {
+        kind: isContribution ? "contribution" : "expense",
         title: form.title,
         currency: form.currency,
         amount: form.amount,
         paidBy: Number(form.paidBy),
         dayOfMonth: Number(form.dayOfMonth),
         participantIds: form.participantIds,
-        paidByTreasury: !individual && form.paidByTreasury,
+        paidByTreasury: !individual && !isContribution && form.paidByTreasury,
       };
-      if (form.newCategory.trim()) payload.categoryName = form.newCategory.trim();
-      else if (form.categoryId) payload.categoryId = Number(form.categoryId);
-      if (form.newEntity.trim()) payload.entityName = form.newEntity.trim();
-      else if (form.entityId) payload.entityId = Number(form.entityId);
+      if (isContribution) {
+        if (form.newTreasuryCategory.trim()) payload.treasuryCategoryName = form.newTreasuryCategory.trim();
+        else if (form.treasuryCategoryId) payload.treasuryCategoryId = Number(form.treasuryCategoryId);
+      } else {
+        if (form.newCategory.trim()) payload.categoryName = form.newCategory.trim();
+        else if (form.categoryId) payload.categoryId = Number(form.categoryId);
+        if (form.newEntity.trim()) payload.entityName = form.newEntity.trim();
+        else if (form.entityId) payload.entityId = Number(form.entityId);
+      }
 
       if (editingId) {
         await api.patch(`/projects/${projectId}/recurring/${editingId}`, payload);
@@ -110,6 +133,12 @@ export default function RespawnPanel({ projectId, members, categories, entities,
       setShowForm(false);
       setEditingId(null);
       await load();
+      if (isContribution && form.newTreasuryCategory.trim()) {
+        api
+          .get(`/projects/${projectId}/treasury`)
+          .then((res) => setTreasuryCategories(res.categories))
+          .catch(() => {});
+      }
     } catch (err) {
       setError(tError(err));
     } finally {
@@ -138,7 +167,7 @@ export default function RespawnPanel({ projectId, members, categories, entities,
 
   if (!rules) return <p className="text-slate-500 text-sm py-8 text-center">{t("common.loading")}</p>;
 
-  const hideSplit = individual || form.paidByTreasury;
+  const hideSplit = individual || form.paidByTreasury || isContribution;
 
   return (
     <div className="space-y-5">
@@ -155,14 +184,34 @@ export default function RespawnPanel({ projectId, members, categories, entities,
           <h3 className="font-display uppercase tracking-widest text-neon-green text-sm">
             {editingId ? t("respawn.editRule") : t("respawn.newRule")}
           </h3>
+
+          {!individual && !editingId && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className={form.kind === "expense" ? "btn-primary" : "btn-secondary"}
+                onClick={() => setForm((f) => ({ ...f, kind: "expense" }))}
+              >
+                {t("respawn.kindExpense")}
+              </button>
+              <button
+                type="button"
+                className={form.kind === "contribution" ? "btn-primary" : "btn-secondary"}
+                onClick={() => setForm((f) => ({ ...f, kind: "contribution" }))}
+              >
+                {t("respawn.kindContribution")}
+              </button>
+            </div>
+          )}
+
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="label">{t("ledger.title")}</label>
+              <label className="label">{isContribution ? t("treasury.concept") : t("ledger.title")}</label>
               <input
                 className="field"
                 value={form.title}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                placeholder={t("ledger.titlePlaceholder")}
+                placeholder={isContribution ? t("treasury.conceptPlaceholder") : t("ledger.titlePlaceholder")}
                 required
               />
             </div>
@@ -192,53 +241,80 @@ export default function RespawnPanel({ projectId, members, categories, entities,
                 />
               </div>
             </div>
-            <div>
-              <label className="label">{t("ledger.category")}</label>
-              <select
-                className="field"
-                value={form.newCategory ? "" : form.categoryId}
-                onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value, newCategory: "" }))}
-                disabled={!!form.newCategory}
-              >
-                <option value="">{t("ledger.noCategory")}</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-              <input
-                className="field mt-2"
-                placeholder={t("ledger.newCategoryPlaceholder")}
-                value={form.newCategory}
-                onChange={(e) => setForm((f) => ({ ...f, newCategory: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="label">{t("ledger.entity")}</label>
-              <select
-                className="field"
-                value={form.newEntity ? "" : form.entityId}
-                onChange={(e) => setForm((f) => ({ ...f, entityId: e.target.value, newEntity: "" }))}
-                disabled={!!form.newEntity}
-              >
-                <option value="">{t("ledger.noEntity")}</option>
-                {entities.map((ent) => (
-                  <option key={ent.id} value={ent.id}>
-                    {ent.name}
-                  </option>
-                ))}
-              </select>
-              <input
-                className="field mt-2"
-                placeholder={t("ledger.newEntityPlaceholder")}
-                value={form.newEntity}
-                onChange={(e) => setForm((f) => ({ ...f, newEntity: e.target.value }))}
-              />
-            </div>
+            {isContribution ? (
+              <div>
+                <label className="label">{t("ledger.category")}</label>
+                <select
+                  className="field"
+                  value={form.newTreasuryCategory ? "" : form.treasuryCategoryId}
+                  onChange={(e) => setForm((f) => ({ ...f, treasuryCategoryId: e.target.value, newTreasuryCategory: "" }))}
+                  disabled={!!form.newTreasuryCategory}
+                >
+                  <option value="">{t("ledger.noCategory")}</option>
+                  {treasuryCategories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className="field mt-2"
+                  placeholder={t("ledger.newCategoryPlaceholder")}
+                  value={form.newTreasuryCategory}
+                  onChange={(e) => setForm((f) => ({ ...f, newTreasuryCategory: e.target.value }))}
+                />
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="label">{t("ledger.category")}</label>
+                  <select
+                    className="field"
+                    value={form.newCategory ? "" : form.categoryId}
+                    onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value, newCategory: "" }))}
+                    disabled={!!form.newCategory}
+                  >
+                    <option value="">{t("ledger.noCategory")}</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    className="field mt-2"
+                    placeholder={t("ledger.newCategoryPlaceholder")}
+                    value={form.newCategory}
+                    onChange={(e) => setForm((f) => ({ ...f, newCategory: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="label">{t("ledger.entity")}</label>
+                  <select
+                    className="field"
+                    value={form.newEntity ? "" : form.entityId}
+                    onChange={(e) => setForm((f) => ({ ...f, entityId: e.target.value, newEntity: "" }))}
+                    disabled={!!form.newEntity}
+                  >
+                    <option value="">{t("ledger.noEntity")}</option>
+                    {entities.map((ent) => (
+                      <option key={ent.id} value={ent.id}>
+                        {ent.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    className="field mt-2"
+                    placeholder={t("ledger.newEntityPlaceholder")}
+                    value={form.newEntity}
+                    onChange={(e) => setForm((f) => ({ ...f, newEntity: e.target.value }))}
+                  />
+                </div>
+              </>
+            )}
             {!individual && (
               <div>
-                <label className="label">{t("ledger.paidBy")}</label>
+                <label className="label">{isContribution ? t("respawn.contributedBy") : t("ledger.paidBy")}</label>
                 <select
                   className="field"
                   value={form.paidBy}
@@ -267,7 +343,7 @@ export default function RespawnPanel({ projectId, members, categories, entities,
             </div>
           </div>
 
-          {!individual && (
+          {!individual && !isContribution && (
             <label className="flex items-center gap-2 text-sm text-slate-300 select-none cursor-pointer">
               <input
                 type="checkbox"
@@ -344,20 +420,36 @@ export default function RespawnPanel({ projectId, members, categories, entities,
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-slate-100">{rule.title}</span>
-                  {rule.categoryName && (
-                    <span className="badge border-neon-purple/50 text-neon-purple">{rule.categoryName}</span>
-                  )}
-                  {rule.isTreasury && (
-                    <span className="badge border-neon-gold/60 text-neon-gold">🏦 {t("ledger.treasuryBadge")}</span>
+                  {rule.kind === "contribution" ? (
+                    <>
+                      <span className="badge border-neon-green/60 text-neon-green">
+                        💰 {t("respawn.kindContribution")}
+                      </span>
+                      {rule.treasuryCategoryName && (
+                        <span className="badge border-neon-purple/50 text-neon-purple">
+                          {rule.treasuryCategoryName}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {rule.categoryName && (
+                        <span className="badge border-neon-purple/50 text-neon-purple">{rule.categoryName}</span>
+                      )}
+                      {rule.isTreasury && (
+                        <span className="badge border-neon-gold/60 text-neon-gold">🏦 {t("ledger.treasuryBadge")}</span>
+                      )}
+                    </>
                   )}
                   {!rule.active && (
                     <span className="badge border-slate-600 text-slate-500">{t("respawn.paused")}</span>
                   )}
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  {t("respawn.dayLabel")} {rule.dayOfMonth} · {t("ledger.paidByLine")}{" "}
+                  {t("respawn.dayLabel")} {rule.dayOfMonth} ·{" "}
+                  {rule.kind === "contribution" ? t("respawn.contributedBy") : t("ledger.paidByLine")}{" "}
                   <span className="text-slate-300">{rule.paidByUsername}</span>
-                  {!rule.isTreasury && !individual && (
+                  {rule.kind !== "contribution" && !rule.isTreasury && !individual && (
                     <>
                       {" "}
                       · {rule.participantIds.length} {t("respawn.people")}

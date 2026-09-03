@@ -20,6 +20,16 @@ export default function TreasuryPanel({ projectId }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [openGroups, setOpenGroups] = useState(() => new Set());
+
+  const toggleGroup = (key) => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const [concept, setConcept] = useState("");
   const [currency, setCurrency] = useState(user?.defaultCurrency || "EUR");
@@ -76,6 +86,26 @@ export default function TreasuryPanel({ projectId }) {
   };
 
   if (!data) return <p className="text-slate-500 text-sm py-8 text-center">{t("common.loading")}</p>;
+
+  const groups = [];
+  const groupIndex = new Map();
+  for (const m of data.movements) {
+    const key = m.categoryName || "__uncategorized__";
+    let group = groupIndex.get(key);
+    if (!group) {
+      group = { key, name: m.categoryName || null, items: [], balanceByCurrency: {} };
+      groupIndex.set(key, group);
+      groups.push(group);
+    }
+    group.items.push(m);
+    const signedAmount = m.kind === "contribution" ? m.amount : -m.amount;
+    group.balanceByCurrency[m.currency] = (group.balanceByCurrency[m.currency] || 0) + signedAmount;
+  }
+  groups.sort((a, b) => {
+    if (!a.name) return 1;
+    if (!b.name) return -1;
+    return a.name.localeCompare(b.name);
+  });
 
   return (
     <div className="space-y-5">
@@ -198,43 +228,74 @@ export default function TreasuryPanel({ projectId }) {
       {data.movements.length === 0 ? (
         <p className="text-slate-500 text-sm py-8 text-center">{t("treasury.noMovements")}</p>
       ) : (
-        <div className="panel p-4">
-          <p className="text-xs font-display uppercase tracking-widest text-slate-400 mb-3">{t("treasury.movements")}</p>
-          <ul className="space-y-2">
-            {data.movements.map((m) => {
-              const isContribution = m.kind === "contribution";
-              return (
-                <li
-                  key={`${m.kind}-${m.id}`}
-                  className="flex items-center justify-between gap-3 flex-wrap text-sm bg-ink-800/60 rounded-lg px-3 py-2"
+        <div className="space-y-3">
+          <p className="text-xs font-display uppercase tracking-widest text-slate-400">{t("treasury.movements")}</p>
+          {groups.map((group) => {
+            const isOpen = openGroups.has(group.key);
+            const balanceEntries = Object.entries(group.balanceByCurrency);
+            return (
+              <div key={group.key} className="panel p-4">
+                <button
+                  type="button"
+                  className="w-full flex items-center justify-between gap-3 flex-wrap text-left"
+                  onClick={() => toggleGroup(group.key)}
                 >
-                  <div className="min-w-0">
-                    <span className="text-slate-200">{m.concept}</span>
-                    {m.categoryName && (
-                      <span className="badge border-neon-purple/50 text-neon-purple ml-2">{m.categoryName}</span>
-                    )}
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {m.date} · {m.username}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`font-mono font-bold ${isContribution ? "text-neon-green" : "text-neon-red"}`}>
-                      {isContribution ? "+" : "-"}
-                      {m.amount.toFixed(2)} {m.currency}
-                    </span>
-                    {isContribution && (
-                      <button
-                        className="btn-danger !px-2 !py-1 text-[10px]"
-                        onClick={() => removeContribution(m.id)}
+                  <span className="font-display uppercase tracking-widest text-slate-200 text-xs flex items-center gap-2">
+                    {isOpen ? "▾" : "▸"} {group.name || t("treasury.uncategorized")}
+                  </span>
+                  <span className="flex items-center gap-3 flex-wrap">
+                    {balanceEntries.map(([currency, balance]) => (
+                      <span
+                        key={currency}
+                        className={`font-mono text-sm font-bold ${
+                          balance < 0 ? "text-neon-red" : "text-neon-green"
+                        }`}
                       >
-                        {t("common.delete")}
-                      </button>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                        {CURRENCY_SYMBOL[currency] || currency} {balance.toFixed(2)}
+                      </span>
+                    ))}
+                  </span>
+                </button>
+
+                {isOpen && (
+                  <ul className="space-y-2 mt-3">
+                    {group.items.map((m) => {
+                      const isContribution = m.kind === "contribution";
+                      return (
+                        <li
+                          key={`${m.kind}-${m.id}`}
+                          className="flex items-center justify-between gap-3 flex-wrap text-sm bg-ink-800/60 rounded-lg px-3 py-2"
+                        >
+                          <div className="min-w-0">
+                            <span className="text-slate-200">{m.concept}</span>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              {m.date} · {m.username}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`font-mono font-bold ${isContribution ? "text-neon-green" : "text-neon-red"}`}
+                            >
+                              {isContribution ? "+" : "-"}
+                              {m.amount.toFixed(2)} {m.currency}
+                            </span>
+                            {isContribution && (
+                              <button
+                                className="btn-danger !px-2 !py-1 text-[10px]"
+                                onClick={() => removeContribution(m.id)}
+                              >
+                                {t("common.delete")}
+                              </button>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

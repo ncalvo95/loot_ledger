@@ -4,6 +4,7 @@ const { requireAuth } = require("../auth");
 const { validateCurrency } = require("../validators");
 const { loadProject, requireProjectAccess, canManageProject, getActiveMembers } = require("../services/projectAccess");
 const { listRecurringRules, createRecurringRule, updateRecurringRule, deleteRecurringRule } = require("../services/recurring");
+const { resolveTreasuryCategory } = require("../services/treasury");
 
 const router = express.Router({ mergeParams: true });
 router.use(requireAuth, loadProject, requireProjectAccess);
@@ -26,11 +27,20 @@ function requireManage(req, res, next) {
 // bien Treasury o bien una lista de participantes (nunca las dos), salvo en
 // un proyecto individual donde ninguna de las dos aplica -- ahí el único
 // miembro activo es siempre el participante.
+//
+// Si kind === "contribution" es un aporte recurrente al fondo común (ej. el
+// sueldo mensual): no aplica categoría/entidad/participantes/Treasury de
+// gasto, solo título (concepto), monto, día del mes y opcionalmente una
+// categoría de Treasury. Solo válido en proyectos compartidos (el fondo
+// común no existe en proyectos individuales).
 function validateRuleInput(req, body) {
-  const { title, currency, amount, paidBy, categoryId, categoryName, entityId, entityName, dayOfMonth, participantIds, paidByTreasury } =
-    body || {};
+  const {
+    title, currency, amount, paidBy, categoryId, categoryName, entityId, entityName,
+    dayOfMonth, participantIds, paidByTreasury, kind, treasuryCategoryId, treasuryCategoryName,
+  } = body || {};
   const isIndividual = req.project.type === "individual";
-  const isTreasury = !isIndividual && !!paidByTreasury;
+  const isContribution = !isIndividual && kind === "contribution";
+  const isTreasury = !isIndividual && !isContribution && !!paidByTreasury;
 
   const trimmedTitle = (title || "").trim();
   if (!trimmedTitle) return { error: "El título es obligatorio." };
@@ -44,6 +54,16 @@ function validateRuleInput(req, body) {
   const activeIds = new Set(activeMembers.map((m) => m.id));
   if (!activeIds.has(Number(paidBy))) {
     return { error: "El pagador debe ser un miembro activo del proyecto." };
+  }
+
+  if (isContribution) {
+    const treasuryCategory = resolveTreasuryCategory(req.project.id, { categoryId: treasuryCategoryId, categoryName: treasuryCategoryName });
+    return {
+      kind: "contribution",
+      trimmedTitle, currency, amountCents, paidBy: Number(paidBy),
+      category: null, entity: null, participants: [], isTreasury: false, dayOfMonth: day,
+      treasuryCategory,
+    };
   }
 
   let participants;
@@ -87,6 +107,7 @@ function validateRuleInput(req, body) {
   }
 
   return {
+    kind: "expense",
     trimmedTitle, currency, amountCents, paidBy: Number(paidBy),
     category, entity, participants, isTreasury, dayOfMonth: day,
   };
@@ -102,9 +123,11 @@ router.post("/", requireManage, (req, res) => {
 
   const id = createRecurringRule({
     projectId: req.project.id,
+    kind: result.kind,
     title: result.trimmedTitle,
     categoryId: result.category ? result.category.id : null,
     entityId: result.entity ? result.entity.id : null,
+    treasuryCategoryId: result.treasuryCategory ? result.treasuryCategory.id : null,
     currency: result.currency,
     amountCents: result.amountCents,
     paidBy: result.paidBy,
@@ -132,9 +155,11 @@ router.patch("/:ruleId", requireManage, (req, res) => {
   if (result.error) return res.status(400).json({ error: result.error });
 
   const updated = updateRecurringRule(rule.id, {
+    kind: result.kind,
     title: result.trimmedTitle,
     categoryId: result.category ? result.category.id : null,
     entityId: result.entity ? result.entity.id : null,
+    treasuryCategoryId: result.treasuryCategory ? result.treasuryCategory.id : null,
     currency: result.currency,
     amountCents: result.amountCents,
     paidBy: result.paidBy,

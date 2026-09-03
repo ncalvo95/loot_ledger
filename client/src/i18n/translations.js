@@ -134,6 +134,7 @@ export const translations = {
       noMovements: "Todavía no hay movimientos.",
       movements: "Movimientos",
       confirmDelete: "¿Eliminar este aporte? Esta acción no se puede deshacer.",
+      uncategorized: "Sin categoría",
     },
     respawn: {
       subtitle: "Gastos que se cargan solos cada mes. Después se pueden editar o eliminar como cualquier gasto del Ledger sin afectar la regla.",
@@ -148,6 +149,9 @@ export const translations = {
       paused: "pausada",
       empty: "Todavía no hay reglas de gastos recurrentes.",
       confirmDelete: "¿Eliminar esta regla? Los gastos que ya generó se conservan.",
+      kindExpense: "Gasto",
+      kindContribution: "Aporte al fondo común",
+      contributedBy: "Aportado por",
     },
     ledger: {
       exportCta: "Exportar",
@@ -445,6 +449,7 @@ export const translations = {
       noMovements: "No movements yet.",
       movements: "Movements",
       confirmDelete: "Delete this contribution? This action can't be undone.",
+      uncategorized: "No category",
     },
     respawn: {
       subtitle: "Expenses that load themselves every month. Afterwards you can edit or delete them like any Ledger expense without affecting the rule.",
@@ -459,6 +464,9 @@ export const translations = {
       paused: "paused",
       empty: "No recurring expense rules yet.",
       confirmDelete: "Delete this rule? Expenses it already generated are kept.",
+      kindExpense: "Expense",
+      kindContribution: "Contribution to shared fund",
+      contributedBy: "Contributed by",
     },
     ledger: {
       exportCta: "Export",

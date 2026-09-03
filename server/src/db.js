@@ -353,6 +353,8 @@ CREATE TABLE IF NOT EXISTS recurring_expenses (
   day_of_month INTEGER NOT NULL DEFAULT 1 CHECK (day_of_month BETWEEN 1 AND 31),
   active INTEGER NOT NULL DEFAULT 1,
   last_run_month TEXT,
+  kind TEXT NOT NULL DEFAULT 'expense',
+  treasury_category_id INTEGER REFERENCES treasury_categories(id),
   created_by INTEGER NOT NULL REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -463,6 +465,25 @@ function migrateAddDefaultCurrencyToUsers() {
 }
 
 migrateAddDefaultCurrencyToUsers();
+
+// Respawn puede generar tanto un gasto normal (kind='expense', como hasta
+// ahora) como un aporte recurrente al fondo común (kind='contribution', ej.
+// el sueldo que se carga solo todos los meses). "treasury_category_id" es
+// la categoría de Treasury para ese aporte -- separada de "category_id"
+// porque son tablas distintas (categories vs treasury_categories).
+function migrateRecurringExpensesContribution() {
+  if (!tableExists("recurring_expenses")) return;
+  let row = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='recurring_expenses'").get();
+  if (!row.sql.includes("kind")) {
+    db.exec("ALTER TABLE recurring_expenses ADD COLUMN kind TEXT NOT NULL DEFAULT 'expense'");
+  }
+  row = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='recurring_expenses'").get();
+  if (!row.sql.includes("treasury_category_id")) {
+    db.exec("ALTER TABLE recurring_expenses ADD COLUMN treasury_category_id INTEGER REFERENCES treasury_categories(id)");
+  }
+}
+
+migrateRecurringExpensesContribution();
 
 function seedAdmin() {
   const existing = db.prepare("SELECT id FROM users WHERE username = ?").get("administrator");
