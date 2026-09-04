@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import { useConfirm } from "../context/ConfirmContext.jsx";
 
 const CURRENCIES = [
   { code: "EUR", label: "EUR - Euro" },
@@ -33,8 +34,9 @@ function emptyForm(members, individual, defaultCurrency) {
 }
 
 export default function RespawnPanel({ projectId, members, categories, entities, individual, canManage }) {
-  const { t, tError } = useLanguage();
+  const { t, tError, showHelp } = useLanguage();
   const { user } = useAuth();
+  const confirmAction = useConfirm();
   const [rules, setRules] = useState(null);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -166,7 +168,7 @@ export default function RespawnPanel({ projectId, members, categories, entities,
   };
 
   const remove = async (rule) => {
-    if (!confirm(t("respawn.confirmDelete"))) return;
+    if (!(await confirmAction(t("respawn.confirmDelete")))) return;
     try {
       await api.delete(`/projects/${projectId}/recurring/${rule.id}`);
       await load();
@@ -181,7 +183,7 @@ export default function RespawnPanel({ projectId, members, categories, entities,
 
   return (
     <div className="space-y-5">
-      <p className="text-sm text-slate-400">{t("respawn.subtitle")}</p>
+      {showHelp && <p className="text-sm text-slate-400">{t("respawn.subtitle")}</p>}
 
       {canManage && !showForm && (
         <button className="btn-primary" onClick={startCreate}>

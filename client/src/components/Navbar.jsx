@@ -6,6 +6,7 @@ import { useInstallPrompt } from "../context/InstallPromptContext.jsx";
 import LanguageToggle from "./LanguageToggle.jsx";
 import StyleToggle from "./StyleToggle.jsx";
 import ThemeToggle from "./ThemeToggle.jsx";
+import HelpToggle from "./HelpToggle.jsx";
 import AccountMenu from "./AccountMenu.jsx";
 import ChangePasswordModal from "./ChangePasswordModal.jsx";
 import SessionsModal from "./SessionsModal.jsx";
@@ -121,6 +122,7 @@ export default function Navbar() {
               <StyleToggle />
               <ThemeToggle />
             </div>
+            <HelpToggle />
             <button
               onClick={() => {
                 setShowChangePassword(true);

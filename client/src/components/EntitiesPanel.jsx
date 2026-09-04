@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { api } from "../api.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import { useConfirm } from "../context/ConfirmContext.jsx";
 
 export default function EntitiesPanel({ projectId, entities, onChanged }) {
   const { t, tError } = useLanguage();
+  const confirmAction = useConfirm();
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState("");
@@ -28,7 +30,7 @@ export default function EntitiesPanel({ projectId, entities, onChanged }) {
   };
 
   const remove = async (ent) => {
-    if (!confirm(t("ledger.confirmDeleteEntity"))) return;
+    if (!(await confirmAction(t("ledger.confirmDeleteEntity")))) return;
     setError("");
     try {
       await api.delete(`/projects/${projectId}/entities/${ent.id}`);

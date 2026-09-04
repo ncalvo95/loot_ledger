@@ -1,16 +1,18 @@
 import React, { useState } from "react";
 import { api } from "../api.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import { useConfirm } from "../context/ConfirmContext.jsx";
 
 const CURRENCY_SYMBOL = { EUR: "€", USD: "$", ARS: "AR$" };
 
 export default function BalanceView({ balances, projectId, currentUserId, canManage, onSettled }) {
   const { t, tError } = useLanguage();
+  const confirmAction = useConfirm();
   const [settlingKey, setSettlingKey] = useState(null);
   const [error, setError] = useState("");
 
   const settle = async (tx, currency) => {
-    if (!confirm(t("quests.settleConfirm"))) return;
+    if (!(await confirmAction(t("quests.settleConfirm"), { danger: false, confirmLabel: t("quests.questComplete") }))) return;
     const key = `${tx.from}-${tx.to}-${currency}`;
     setSettlingKey(key);
     setError("");

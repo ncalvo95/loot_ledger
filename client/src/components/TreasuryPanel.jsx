@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import { useConfirm } from "../context/ConfirmContext.jsx";
 
 const CURRENCIES = [
   { code: "EUR", label: "EUR - Euro" },
@@ -15,8 +16,9 @@ function today() {
 }
 
 export default function TreasuryPanel({ projectId }) {
-  const { t, tError } = useLanguage();
+  const { t, tError, showHelp } = useLanguage();
   const { user } = useAuth();
+  const confirmAction = useConfirm();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -76,7 +78,7 @@ export default function TreasuryPanel({ projectId }) {
   };
 
   const removeContribution = async (id) => {
-    if (!confirm(t("treasury.confirmDelete"))) return;
+    if (!(await confirmAction(t("treasury.confirmDelete")))) return;
     try {
       await api.delete(`/projects/${projectId}/treasury/contributions/${id}`);
       await load();
@@ -109,6 +111,7 @@ export default function TreasuryPanel({ projectId }) {
 
   return (
     <div className="space-y-5">
+      {showHelp && <p className="text-sm text-slate-400">{t("treasury.subtitle")}</p>}
       <div className="grid sm:grid-cols-2 gap-3">
         {data.balance.length === 0 ? (
           <p className="text-slate-500 text-sm py-4 text-center col-span-2">{t("treasury.empty")}</p>

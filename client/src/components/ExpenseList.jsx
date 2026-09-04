@@ -1,14 +1,16 @@
 import React from "react";
 import { api } from "../api.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import { useConfirm } from "../context/ConfirmContext.jsx";
 
 const CURRENCY_SYMBOL = { EUR: "€", USD: "$", ARS: "AR$" };
 
 export default function ExpenseList({ projectId, expenses, canManage, currentUserId, onChanged, onEdit }) {
   const { t } = useLanguage();
+  const confirmAction = useConfirm();
 
   const remove = async (id) => {
-    if (!confirm(t("ledger.confirmDelete"))) return;
+    if (!(await confirmAction(t("ledger.confirmDelete")))) return;
     await api.delete(`/projects/${projectId}/expenses/${id}`);
     onChanged();
   };

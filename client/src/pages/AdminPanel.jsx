@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import { useConfirm } from "../context/ConfirmContext.jsx";
 import PasswordInput from "../components/PasswordInput.jsx";
 import PurgeConfirmModal from "../components/PurgeConfirmModal.jsx";
 import InviteCodeModal from "../components/InviteCodeModal.jsx";
@@ -29,6 +30,7 @@ function StatusBadge({ status, t }) {
 
 export default function AdminPanel() {
   const { t, tError } = useLanguage();
+  const confirmAction = useConfirm();
   const [tab, setTab] = useState("pending");
   const [users, setUsers] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -168,7 +170,7 @@ export default function AdminPanel() {
   };
 
   const removeUser = async (u) => {
-    if (!confirm(`${u.username}?`)) return;
+    if (!(await confirmAction(`${t("admin.confirmRemoveUser")} "${u.username}"?`, { confirmLabel: t("common.remove") }))) return;
     try {
       await api.post(`/admin/users/${u.id}/remove`);
       await loadUsers();

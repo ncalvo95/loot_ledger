@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { api } from "../api.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import { useConfirm } from "../context/ConfirmContext.jsx";
 
 export default function MembersPanel({ projectId, members, isOwner, canManage, isGlobalAdmin, onChanged }) {
   const { t, tError } = useLanguage();
+  const confirmAction = useConfirm();
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -24,7 +26,7 @@ export default function MembersPanel({ projectId, members, isOwner, canManage, i
   };
 
   const removeMember = async (userId) => {
-    if (!confirm(t("team.confirmRemove"))) return;
+    if (!(await confirmAction(t("team.confirmRemove"), { confirmLabel: t("common.remove") }))) return;
     await api.post(`/projects/${projectId}/members/${userId}/remove`);
     onChanged();
   };

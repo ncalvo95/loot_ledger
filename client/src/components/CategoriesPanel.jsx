@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { api } from "../api.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import { useConfirm } from "../context/ConfirmContext.jsx";
 
 export default function CategoriesPanel({ projectId, categories, onChanged }) {
   const { t, tError } = useLanguage();
+  const confirmAction = useConfirm();
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState("");
@@ -28,7 +30,7 @@ export default function CategoriesPanel({ projectId, categories, onChanged }) {
   };
 
   const remove = async (c) => {
-    if (!confirm(t("ledger.confirmDeleteCategory"))) return;
+    if (!(await confirmAction(t("ledger.confirmDeleteCategory")))) return;
     setError("");
     try {
       await api.delete(`/projects/${projectId}/categories/${c.id}`);

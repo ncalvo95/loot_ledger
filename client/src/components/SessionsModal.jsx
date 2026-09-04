@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "../api.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import { useConfirm } from "../context/ConfirmContext.jsx";
 
 function formatDate(value) {
   if (!value) return "";
@@ -10,6 +11,7 @@ function formatDate(value) {
 
 export default function SessionsModal({ onClose }) {
   const { t, tError } = useLanguage();
+  const confirmAction = useConfirm();
   const [sessions, setSessions] = useState(null);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(null);
@@ -60,7 +62,7 @@ export default function SessionsModal({ onClose }) {
   };
 
   const revokeOthers = async () => {
-    if (!confirm(t("sessions.confirmRevokeOthers"))) return;
+    if (!(await confirmAction(t("sessions.confirmRevokeOthers"), { confirmLabel: t("sessions.revoke") }))) return;
     setError("");
     setBusyAll(true);
     try {

@@ -42,6 +42,7 @@ export const translations = {
       themeDark: "Oscuro",
       themeLight: "Claro",
       defaultCurrency: "Moneda por defecto",
+      showHelp: "Mostrar ayuda",
     },
     sessions: {
       title: "Sesiones activas",
@@ -129,6 +130,7 @@ export const translations = {
       deleteDescriptionShared: "Esto borra el proyecto para siempre, incluyendo el historial de gastos de TODOS los demás miembros. No se puede deshacer.",
     },
     treasury: {
+      subtitle: "Una caja compartida del grupo: todos aportan, y de ahí se pagan los gastos fijos sin repartirlos entre las personas.",
       addFunds: "Agregar fondo",
       concept: "Concepto",
       conceptPlaceholder: "Ej: Aporte mensual, Sueldo",
@@ -232,6 +234,7 @@ export const translations = {
     admin: {
       title: "Panel de administración",
       subtitle: "Gestión global de usuarios y proyectos del servidor.",
+      confirmRemoveUser: "¿Quitar al usuario",
       tabs: {
         pending: "Solicitudes",
         users: "Usuarios",
@@ -364,6 +367,7 @@ export const translations = {
       themeDark: "Dark",
       themeLight: "Light",
       defaultCurrency: "Default currency",
+      showHelp: "Show help",
     },
     sessions: {
       title: "Active sessions",
@@ -450,6 +454,7 @@ export const translations = {
       deleteDescriptionShared: "This deletes the project forever, including the expense history of ALL other members. This can't be undone.",
     },
     treasury: {
+      subtitle: "A shared pool for the group: everyone contributes, and fixed expenses get paid from it without splitting them between people.",
       addFunds: "Add funds",
       concept: "Concept",
       conceptPlaceholder: "E.g: Monthly contribution, Salary",
@@ -553,6 +558,7 @@ export const translations = {
     admin: {
       title: "Admin panel",
       subtitle: "Server-wide user and project management.",
+      confirmRemoveUser: "Remove user",
       tabs: {
         pending: "Requests",
         users: "Users",

@@ -5,6 +5,7 @@ const LanguageContext = createContext(null);
 const STORAGE_KEY = "loot_ledger_lang";
 const TONE_STORAGE_KEY = "loot_ledger_tone";
 const THEME_STORAGE_KEY = "loot_ledger_theme";
+const SHOW_HELP_STORAGE_KEY = "loot_ledger_show_help";
 
 function detectDefaultLang() {
   try {
@@ -41,6 +42,20 @@ function detectDefaultTheme() {
   return "dark";
 }
 
+// Ayuda contextual (una línea explicando qué es el Fondo común, etc.):
+// arranca activada, a diferencia de tema/tono, porque Recurrentes ya
+// mostraba su propio texto de ayuda antes de que existiera este toggle
+// -- que arranque apagada sería sacarle algo a quien ya lo tenía.
+function detectDefaultShowHelp() {
+  try {
+    const stored = localStorage.getItem(SHOW_HELP_STORAGE_KEY);
+    if (stored === "on" || stored === "off") return stored === "on";
+  } catch {
+    /* localStorage no disponible */
+  }
+  return true;
+}
+
 function lookup(dict, path) {
   return path.split(".").reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined), dict);
 }
@@ -49,6 +64,7 @@ export function LanguageProvider({ children }) {
   const [lang, setLangState] = useState(detectDefaultLang);
   const [tone, setToneState] = useState(detectDefaultTone);
   const [theme, setThemeState] = useState(detectDefaultTheme);
+  const [showHelp, setShowHelpState] = useState(detectDefaultShowHelp);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -89,6 +105,15 @@ export function LanguageProvider({ children }) {
     }
   };
 
+  const setShowHelp = (next) => {
+    setShowHelpState(next);
+    try {
+      localStorage.setItem(SHOW_HELP_STORAGE_KEY, next ? "on" : "off");
+    } catch {
+      /* localStorage no disponible */
+    }
+  };
+
   const t = useMemo(() => {
     return (key, fallback) => {
       // Modo "simple": los terminos con onda gamer (Loot, Quests, Party, etc.)
@@ -117,7 +142,9 @@ export function LanguageProvider({ children }) {
   };
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang, tone, setTone, theme, setTheme, t, tError }}>
+    <LanguageContext.Provider
+      value={{ lang, setLang, tone, setTone, theme, setTheme, showHelp, setShowHelp, t, tError }}
+    >
       {children}
     </LanguageContext.Provider>
   );
