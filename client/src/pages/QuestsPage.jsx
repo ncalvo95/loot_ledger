@@ -3,6 +3,7 @@ import { api } from "../api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { useConfirm } from "../context/ConfirmContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 import { Loading } from "../components/ProtectedRoute.jsx";
 
 const CURRENCY_SYMBOL = { EUR: "€", USD: "$", ARS: "AR$" };
@@ -11,8 +12,8 @@ export default function QuestsPage() {
   const { user } = useAuth();
   const { t, tError } = useLanguage();
   const confirmAction = useConfirm();
+  const showError = useToast();
   const [quests, setQuests] = useState(null);
-  const [error, setError] = useState("");
   const [settlingKey, setSettlingKey] = useState(null);
 
   const load = async () => {
@@ -21,21 +22,20 @@ export default function QuestsPage() {
   };
 
   useEffect(() => {
-    load().catch((err) => setError(tError(err)));
+    load().catch((err) => showError(tError(err)));
   }, []);
 
   const settle = async (projectId, counterpartId, currency, direction) => {
     if (!(await confirmAction(t("quests.settleConfirm"), { danger: false, confirmLabel: t("quests.questComplete") }))) return;
     const key = `${projectId}-${counterpartId}-${currency}`;
     setSettlingKey(key);
-    setError("");
     const fromUserId = direction === "youOwe" ? user.id : counterpartId;
     const toUserId = direction === "youOwe" ? counterpartId : user.id;
     try {
       await api.post("/quests/settle", { projectId, fromUserId, toUserId, currency });
       await load();
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     } finally {
       setSettlingKey(null);
     }
@@ -49,8 +49,6 @@ export default function QuestsPage() {
         <h1 className="title-glow text-3xl">{t("quests.title")}</h1>
         <p className="text-slate-400 mt-1">{t("quests.subtitle")}</p>
       </div>
-
-      {error && <p className="text-neon-red text-sm">{error}</p>}
 
       {quests.length === 0 ? (
         <p className="text-slate-500 text-sm py-8 text-center">{t("quests.empty")}</p>

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { api } from "../api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 const CURRENCIES = [
   { code: "EUR", label: "EUR - Euro" },
@@ -24,6 +25,7 @@ export default function ExpenseForm({
   onCancel,
 }) {
   const { t, tError } = useLanguage();
+  const showError = useToast();
   const { user } = useAuth();
   const [categoryId, setCategoryId] = useState(editingExpense?.categoryId || "");
   const [newCategory, setNewCategory] = useState("");
@@ -38,7 +40,6 @@ export default function ExpenseForm({
     editingExpense ? editingExpense.participants.map((p) => p.userId) : members.map((m) => m.id)
   );
   const [paidByTreasury, setPaidByTreasury] = useState(!!editingExpense?.isTreasury);
-  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const hideSplit = individual || paidByTreasury;
 
@@ -54,14 +55,12 @@ export default function ExpenseForm({
     setNewEntity("");
     setParticipantIds(members.map((m) => m.id));
     setDate(today());
-    setError("");
   };
 
   const submit = async (e) => {
     e.preventDefault();
-    setError("");
     if (!hideSplit && participantIds.length === 0) {
-      setError(t("ledger.forWhomError"));
+      showError(t("ledger.forWhomError"));
       return;
     }
     setBusy(true);
@@ -93,7 +92,7 @@ export default function ExpenseForm({
       }
       onCreated();
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     } finally {
       setBusy(false);
     }
@@ -251,8 +250,6 @@ export default function ExpenseForm({
           </div>
         </div>
       )}
-
-      {error && <p className="text-neon-red text-sm">{error}</p>}
 
       <div className="flex gap-3 pt-2">
         <button type="submit" disabled={busy} className="btn-primary">

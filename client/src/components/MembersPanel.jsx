@@ -2,24 +2,24 @@ import React, { useState } from "react";
 import { api } from "../api.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { useConfirm } from "../context/ConfirmContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function MembersPanel({ projectId, members, isOwner, canManage, isGlobalAdmin, onChanged }) {
   const { t, tError } = useLanguage();
   const confirmAction = useConfirm();
+  const showError = useToast();
   const [username, setUsername] = useState("");
-  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   const submit = async (e) => {
     e.preventDefault();
-    setError("");
     setBusy(true);
     try {
       await api.post(`/projects/${projectId}/members`, { username: username.trim() });
       setUsername("");
       onChanged();
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     } finally {
       setBusy(false);
     }
@@ -36,7 +36,7 @@ export default function MembersPanel({ projectId, members, isOwner, canManage, i
       await api.post(`/projects/${projectId}/members/${userId}/role`, { role });
       onChanged();
     } catch (err) {
-      alert(tError(err));
+      showError(tError(err));
     }
   };
 
@@ -106,7 +106,6 @@ export default function MembersPanel({ projectId, members, isOwner, canManage, i
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
-          {error && <p className="text-neon-red text-xs">{error}</p>}
           <button type="submit" disabled={busy} className="btn-primary w-full">
             {busy ? t("common.sending") : t("team.inviteCta")}
           </button>

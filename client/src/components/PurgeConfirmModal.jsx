@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 // Doble confirmación para un borrado definitivo e irreversible: primero
 // hay que escribir el nombre exacto para habilitar el botón, y al
@@ -8,21 +9,20 @@ import { useLanguage } from "../i18n/LanguageContext.jsx";
 // segunda barrera.
 export default function PurgeConfirmModal({ title, description, confirmWord, onConfirm, onClose }) {
   const { t, tError } = useLanguage();
+  const showError = useToast();
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
   const canConfirm = typed.trim() === confirmWord;
 
   const handleConfirm = async () => {
     if (!canConfirm) return;
     if (!confirm(t("admin.purgeFinalConfirm"))) return;
     setBusy(true);
-    setError("");
     try {
       await onConfirm();
       onClose();
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     } finally {
       setBusy(false);
     }
@@ -39,7 +39,6 @@ export default function PurgeConfirmModal({ title, description, confirmWord, onC
           </label>
           <input className="field" value={typed} onChange={(e) => setTyped(e.target.value)} autoFocus />
         </div>
-        {error && <p className="text-neon-red text-xs">{error}</p>}
         <div className="flex gap-3">
           <button className="btn-danger" disabled={!canConfirm || busy} onClick={handleConfirm}>
             {busy ? t("common.saving") : t("admin.purgeConfirmButton")}

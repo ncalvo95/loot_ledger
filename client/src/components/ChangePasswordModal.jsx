@@ -2,26 +2,26 @@ import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 import PasswordInput from "./PasswordInput.jsx";
 
 export default function ChangePasswordModal({ onClose }) {
   const { changePassword } = useAuth();
   const { t, tError } = useLanguage();
+  const showError = useToast();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [error, setError] = useState("");
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     setBusy(true);
     try {
       await changePassword(currentPassword, newPassword);
       setDone(true);
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     } finally {
       setBusy(false);
     }
@@ -62,7 +62,6 @@ export default function ChangePasswordModal({ onClose }) {
                 required
               />
             </div>
-            {error && <p className="text-neon-red text-xs">{error}</p>}
             <div className="flex gap-3">
               <button type="submit" disabled={busy} className="btn-primary">
                 {busy ? t("common.saving") : t("common.save")}

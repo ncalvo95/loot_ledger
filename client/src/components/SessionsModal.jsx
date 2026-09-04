@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { api } from "../api.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { useConfirm } from "../context/ConfirmContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 function formatDate(value) {
   if (!value) return "";
@@ -12,6 +13,7 @@ function formatDate(value) {
 export default function SessionsModal({ onClose }) {
   const { t, tError } = useLanguage();
   const confirmAction = useConfirm();
+  const showError = useToast();
   const [sessions, setSessions] = useState(null);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(null);
@@ -29,33 +31,30 @@ export default function SessionsModal({ onClose }) {
   }, []);
 
   const revoke = async (id) => {
-    setError("");
     setBusyId(id);
     try {
       await api.post(`/auth/sessions/${id}/revoke`);
       await load();
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     } finally {
       setBusyId(null);
     }
   };
 
   const startRename = (s) => {
-    setError("");
     setRenamingId(s.id);
     setRenameValue(s.customLabel || "");
   };
 
   const saveRename = async (id) => {
-    setError("");
     setBusyId(id);
     try {
       await api.post(`/auth/sessions/${id}/rename`, { label: renameValue });
       setRenamingId(null);
       await load();
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     } finally {
       setBusyId(null);
     }
@@ -63,13 +62,12 @@ export default function SessionsModal({ onClose }) {
 
   const revokeOthers = async () => {
     if (!(await confirmAction(t("sessions.confirmRevokeOthers"), { confirmLabel: t("sessions.revoke") }))) return;
-    setError("");
     setBusyAll(true);
     try {
       await api.post("/auth/sessions/revoke-others");
       await load();
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     } finally {
       setBusyAll(false);
     }

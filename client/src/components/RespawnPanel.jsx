@@ -3,6 +3,7 @@ import { api } from "../api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { useConfirm } from "../context/ConfirmContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 const CURRENCIES = [
   { code: "EUR", label: "EUR - Euro" },
@@ -37,8 +38,8 @@ export default function RespawnPanel({ projectId, members, categories, entities,
   const { t, tError, showHelp } = useLanguage();
   const { user } = useAuth();
   const confirmAction = useConfirm();
+  const showError = useToast();
   const [rules, setRules] = useState(null);
-  const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm(members, individual, user?.defaultCurrency));
@@ -51,7 +52,7 @@ export default function RespawnPanel({ projectId, members, categories, entities,
   };
 
   useEffect(() => {
-    load().catch((err) => setError(tError(err)));
+    load().catch((err) => showError(tError(err)));
   }, [projectId]);
 
   useEffect(() => {
@@ -105,10 +106,9 @@ export default function RespawnPanel({ projectId, members, categories, entities,
 
   const submit = async (e) => {
     e.preventDefault();
-    setError("");
     const hideSplit = individual || form.paidByTreasury || isContribution;
     if (!hideSplit && form.participantIds.length === 0) {
-      setError(t("ledger.forWhomError"));
+      showError(t("ledger.forWhomError"));
       return;
     }
     setBusy(true);
@@ -152,7 +152,7 @@ export default function RespawnPanel({ projectId, members, categories, entities,
           .catch(() => {});
       }
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     } finally {
       setBusy(false);
     }
@@ -163,7 +163,7 @@ export default function RespawnPanel({ projectId, members, categories, entities,
       await api.patch(`/projects/${projectId}/recurring/${rule.id}`, { active: !rule.active });
       await load();
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     }
   };
 
@@ -173,7 +173,7 @@ export default function RespawnPanel({ projectId, members, categories, entities,
       await api.delete(`/projects/${projectId}/recurring/${rule.id}`);
       await load();
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     }
   };
 
@@ -436,8 +436,6 @@ export default function RespawnPanel({ projectId, members, categories, entities,
             </div>
           )}
 
-          {error && <p className="text-neon-red text-sm">{error}</p>}
-
           <div className="flex gap-3 pt-2">
             <button type="submit" disabled={busy} className="btn-primary">
               {busy ? t("common.saving") : t("common.save")}
@@ -455,8 +453,6 @@ export default function RespawnPanel({ projectId, members, categories, entities,
           </div>
         </form>
       )}
-
-      {error && !showForm && <p className="text-neon-red text-sm">{error}</p>}
 
       {rules.length === 0 ? (
         <p className="text-slate-500 text-sm py-8 text-center">{t("respawn.empty")}</p>

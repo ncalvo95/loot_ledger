@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "../api.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 const PROJECT_EMOJIS = [
   "🗺️", "🎮", "🏆", "💰", "🛡️", "⚔️", "🔥", "💎", "🍕", "🏕️",
@@ -11,22 +12,21 @@ const PROJECT_EMOJIS = [
 
 export default function NewProjectModal({ onCreated, onClose }) {
   const { t, tError } = useLanguage();
+  const showError = useToast();
   const [name, setName] = useState("");
   const [emoji, setEmoji] = useState(PROJECT_EMOJIS[0]);
   const [type, setType] = useState("shared");
-  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   const submit = async (e) => {
     e.preventDefault();
     if (!name.trim()) return;
     setBusy(true);
-    setError("");
     try {
       const { project } = await api.post("/projects", { name: name.trim(), emoji, type });
       await onCreated(project);
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
       setBusy(false);
     }
   };
@@ -74,8 +74,6 @@ export default function NewProjectModal({ onCreated, onClose }) {
             </label>
           </div>
         </div>
-
-        {error && <p className="text-neon-red text-xs">{error}</p>}
 
         <div className="flex gap-3 pt-2">
           <button type="submit" disabled={busy} className="btn-primary">

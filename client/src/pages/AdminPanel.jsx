@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { useConfirm } from "../context/ConfirmContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 import PasswordInput from "../components/PasswordInput.jsx";
 import PurgeConfirmModal from "../components/PurgeConfirmModal.jsx";
 import InviteCodeModal from "../components/InviteCodeModal.jsx";
@@ -31,6 +32,7 @@ function StatusBadge({ status, t }) {
 export default function AdminPanel() {
   const { t, tError } = useLanguage();
   const confirmAction = useConfirm();
+  const showError = useToast();
   const [tab, setTab] = useState("pending");
   const [users, setUsers] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -40,7 +42,6 @@ export default function AdminPanel() {
   const [inviteCodeModal, setInviteCodeModal] = useState(null); // { title, code }
   const [inviteBusy, setInviteBusy] = useState(false);
   const [selectedPending, setSelectedPending] = useState(new Set());
-  const [error, setError] = useState("");
 
   const [resetTarget, setResetTarget] = useState(null);
   const [newPassword, setNewPassword] = useState("");
@@ -94,32 +95,29 @@ export default function AdminPanel() {
   };
 
   const approve = async (ids) => {
-    setError("");
     try {
       await api.post("/admin/users/approve", { ids });
       setSelectedPending(new Set());
       await loadUsers();
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     }
   };
 
   const reject = async (ids) => {
-    setError("");
     try {
       await api.post("/admin/users/reject", { ids });
       setSelectedPending(new Set());
       await loadUsers();
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     }
   };
 
   const createUser = async (e) => {
     e.preventDefault();
-    setError("");
     if (!USERNAME_RULE.test(newUserForm.username) || !PASSWORD_RULE.test(newUserForm.password)) {
-      setError(t("auth.usernameRule"));
+      showError(t("auth.usernameRule"));
       return;
     }
     setBusy(true);
@@ -128,7 +126,7 @@ export default function AdminPanel() {
       setNewUserForm({ username: "", password: "" });
       await loadUsers();
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     } finally {
       setBusy(false);
     }
@@ -136,7 +134,6 @@ export default function AdminPanel() {
 
   const doRename = async (e) => {
     e.preventDefault();
-    setError("");
     setBusy(true);
     try {
       await api.post(`/admin/users/${renameTarget.id}/rename`, { newUsername });
@@ -144,7 +141,7 @@ export default function AdminPanel() {
       setNewUsername("");
       await loadUsers();
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     } finally {
       setBusy(false);
     }
@@ -152,9 +149,8 @@ export default function AdminPanel() {
 
   const doResetPassword = async (e) => {
     e.preventDefault();
-    setError("");
     if (!PASSWORD_RULE.test(newPassword)) {
-      setError(t("auth.passwordRule"));
+      showError(t("auth.passwordRule"));
       return;
     }
     setBusy(true);
@@ -163,7 +159,7 @@ export default function AdminPanel() {
       setResetTarget(null);
       setNewPassword("");
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     } finally {
       setBusy(false);
     }
@@ -175,38 +171,40 @@ export default function AdminPanel() {
       await api.post(`/admin/users/${u.id}/remove`);
       await loadUsers();
     } catch (err) {
-      alert(tError(err));
+      showError(tError(err));
     }
   };
 
   const reactivateUser = async (u) => {
-    await api.post(`/admin/users/${u.id}/reactivate`);
-    await loadUsers();
+    try {
+      await api.post(`/admin/users/${u.id}/reactivate`);
+      await loadUsers();
+    } catch (err) {
+      showError(tError(err));
+    }
   };
 
   const generateInvite = async () => {
-    setError("");
     setInviteBusy(true);
     try {
       const data = await api.post("/admin/invites");
       setInviteCodeModal({ title: t("admin.inviteCodeGenerated"), code: data.code });
       await loadUsers();
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     } finally {
       setInviteBusy(false);
     }
   };
 
   const assignInviteCode = async (u, { regenerate = false } = {}) => {
-    setError("");
     setInviteBusy(true);
     try {
       const data = await api.post(`/admin/users/${u.id}/invite-code`, { regenerate });
       setInviteCodeModal({ title: `${t("admin.inviteCodeGenerated")} — ${u.username}`, code: data.code });
       await loadUsers();
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     } finally {
       setInviteBusy(false);
     }
@@ -214,9 +212,8 @@ export default function AdminPanel() {
 
   const doResolveRequest = async (e) => {
     e.preventDefault();
-    setError("");
     if (!PASSWORD_RULE.test(resolvePassword)) {
-      setError(t("auth.passwordRule"));
+      showError(t("auth.passwordRule"));
       return;
     }
     setBusy(true);
@@ -228,7 +225,7 @@ export default function AdminPanel() {
       setResolvePassword("");
       await loadResetRequests();
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     } finally {
       setBusy(false);
     }
@@ -270,8 +267,6 @@ export default function AdminPanel() {
           ↻ {t("common.refresh")}
         </button>
       </nav>
-
-      {error && <p className="text-neon-red text-sm">{error}</p>}
 
       {tab === "pending" && (
         <div className="panel p-5 space-y-4">
@@ -408,7 +403,6 @@ export default function AdminPanel() {
                         onClick={() => {
                           setRenameTarget(u);
                           setNewUsername(u.username);
-                          setError("");
                         }}
                       >
                         {t("admin.rename")}
@@ -418,7 +412,6 @@ export default function AdminPanel() {
                         onClick={() => {
                           setResetTarget(u);
                           setNewPassword("");
-                          setError("");
                         }}
                       >
                         {t("admin.resetPassword")}
@@ -501,7 +494,6 @@ export default function AdminPanel() {
                   onClick={() => {
                     setResolveTarget(r);
                     setResolvePassword("");
-                    setError("");
                   }}
                 >
                   {t("admin.resolve")}
@@ -525,7 +517,6 @@ export default function AdminPanel() {
               onChange={(e) => setNewPassword(e.target.value)}
               autoFocus
             />
-            {error && <p className="text-neon-red text-xs">{error}</p>}
             <div className="flex gap-3">
               <button type="submit" disabled={busy} className="btn-primary">
                 {t("common.save")}
@@ -551,7 +542,6 @@ export default function AdminPanel() {
               onChange={(e) => setNewUsername(e.target.value)}
               autoFocus
             />
-            {error && <p className="text-neon-red text-xs">{error}</p>}
             <div className="flex gap-3">
               <button type="submit" disabled={busy} className="btn-primary">
                 {t("common.save")}
@@ -577,7 +567,6 @@ export default function AdminPanel() {
               onChange={(e) => setResolvePassword(e.target.value)}
               autoFocus
             />
-            {error && <p className="text-neon-red text-xs">{error}</p>}
             <div className="flex gap-3">
               <button type="submit" disabled={busy} className="btn-primary">
                 {t("admin.resolve")}

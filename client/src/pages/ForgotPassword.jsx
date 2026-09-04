@@ -2,13 +2,14 @@ import React, { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 import { Loading } from "../components/ProtectedRoute.jsx";
 
 export default function ForgotPassword() {
   const { forgotPassword, user, loading } = useAuth();
   const { t, tError } = useLanguage();
+  const showError = useToast();
   const [username, setUsername] = useState("");
-  const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -17,13 +18,12 @@ export default function ForgotPassword() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     setBusy(true);
     try {
       await forgotPassword(username);
       setSent(true);
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     } finally {
       setBusy(false);
     }
@@ -57,7 +57,6 @@ export default function ForgotPassword() {
                 required
               />
             </div>
-            {error && <p className="text-neon-red text-sm">{error}</p>}
             <button type="submit" disabled={busy} className="btn-primary w-full">
               {busy ? t("common.sending") : t("auth.forgotCta")}
             </button>

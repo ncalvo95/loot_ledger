@@ -2,20 +2,20 @@ import React, { useState } from "react";
 import { api } from "../api.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { useConfirm } from "../context/ConfirmContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 const CURRENCY_SYMBOL = { EUR: "€", USD: "$", ARS: "AR$" };
 
 export default function BalanceView({ balances, projectId, currentUserId, canManage, onSettled }) {
   const { t, tError } = useLanguage();
   const confirmAction = useConfirm();
+  const showError = useToast();
   const [settlingKey, setSettlingKey] = useState(null);
-  const [error, setError] = useState("");
 
   const settle = async (tx, currency) => {
     if (!(await confirmAction(t("quests.settleConfirm"), { danger: false, confirmLabel: t("quests.questComplete") }))) return;
     const key = `${tx.from}-${tx.to}-${currency}`;
     setSettlingKey(key);
-    setError("");
     try {
       await api.post("/quests/settle", {
         projectId,
@@ -25,7 +25,7 @@ export default function BalanceView({ balances, projectId, currentUserId, canMan
       });
       onSettled && (await onSettled());
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     } finally {
       setSettlingKey(null);
     }
@@ -37,7 +37,6 @@ export default function BalanceView({ balances, projectId, currentUserId, canMan
 
   return (
     <div className="space-y-8">
-      {error && <p className="text-neon-red text-sm">{error}</p>}
       {balances.map((group) => (
         <div key={group.currency} className="space-y-4">
           <h3 className="font-display uppercase tracking-widest text-neon-gold text-sm">

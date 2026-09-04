@@ -3,6 +3,7 @@ import { api } from "../api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { useConfirm } from "../context/ConfirmContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 const CURRENCIES = [
   { code: "EUR", label: "EUR - Euro" },
@@ -19,8 +20,8 @@ export default function TreasuryPanel({ projectId }) {
   const { t, tError, showHelp } = useLanguage();
   const { user } = useAuth();
   const confirmAction = useConfirm();
+  const showError = useToast();
   const [data, setData] = useState(null);
-  const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [openGroups, setOpenGroups] = useState(() => new Set());
 
@@ -47,7 +48,7 @@ export default function TreasuryPanel({ projectId }) {
   };
 
   useEffect(() => {
-    load().catch((err) => setError(tError(err)));
+    load().catch((err) => showError(tError(err)));
   }, [projectId]);
 
   const resetForm = () => {
@@ -60,7 +61,6 @@ export default function TreasuryPanel({ projectId }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    setError("");
     setBusy(true);
     try {
       const payload = { concept, currency, amount, date };
@@ -71,7 +71,7 @@ export default function TreasuryPanel({ projectId }) {
       setShowForm(false);
       await load();
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     } finally {
       setBusy(false);
     }
@@ -83,7 +83,7 @@ export default function TreasuryPanel({ projectId }) {
       await api.delete(`/projects/${projectId}/treasury/contributions/${id}`);
       await load();
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     }
   };
 
@@ -207,7 +207,6 @@ export default function TreasuryPanel({ projectId }) {
               <input type="date" className="field" value={date} onChange={(e) => setDate(e.target.value)} required />
             </div>
           </div>
-          {error && <p className="text-neon-red text-sm">{error}</p>}
           <div className="flex gap-3 pt-2">
             <button type="submit" disabled={busy} className="btn-primary">
               {busy ? t("common.saving") : t("common.confirm")}
@@ -225,8 +224,6 @@ export default function TreasuryPanel({ projectId }) {
           </div>
         </form>
       )}
-
-      {error && !showForm && <p className="text-neon-red text-sm">{error}</p>}
 
       {data.movements.length === 0 ? (
         <p className="text-slate-500 text-sm py-8 text-center">{t("treasury.noMovements")}</p>

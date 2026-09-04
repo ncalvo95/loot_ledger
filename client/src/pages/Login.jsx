@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 import LanguageToggle from "../components/LanguageToggle.jsx";
 import PasswordInput from "../components/PasswordInput.jsx";
 import { Loading } from "../components/ProtectedRoute.jsx";
@@ -9,11 +10,11 @@ import { Loading } from "../components/ProtectedRoute.jsx";
 export default function Login() {
   const { login, user, loading } = useAuth();
   const { t, tError } = useLanguage();
+  const showError = useToast();
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
-  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   if (loading) return <Loading />;
@@ -21,13 +22,12 @@ export default function Login() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     setBusy(true);
     try {
       await login(username, password, remember);
       navigate("/");
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     } finally {
       setBusy(false);
     }
@@ -69,7 +69,6 @@ export default function Login() {
             <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
             {t("auth.rememberMe")}
           </label>
-          {error && <p className="text-neon-red text-sm">{error}</p>}
           <button type="submit" disabled={busy} className="btn-primary w-full">
             {busy ? t("auth.loginBusy") : t("auth.loginCta")}
           </button>

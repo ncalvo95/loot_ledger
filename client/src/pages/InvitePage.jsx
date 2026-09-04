@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 import LanguageToggle from "../components/LanguageToggle.jsx";
 import PasswordInput from "../components/PasswordInput.jsx";
 import { Loading } from "../components/ProtectedRoute.jsx";
@@ -25,6 +26,7 @@ const PASSWORD_RULE = /^[A-Za-z0-9._-]{6,16}$/;
 export default function InvitePage() {
   const { user, loading: authLoading } = useAuth();
   const { t, tError } = useLanguage();
+  const showError = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const codeFromUrl = (searchParams.get("code") || "").trim();
@@ -33,13 +35,11 @@ export default function InvitePage() {
   const [mode, setMode] = useState(null); // 'claim' | 'gate' | null (sin validar / invalido)
   const [code, setCode] = useState(codeFromUrl);
   const [codeInput, setCodeInput] = useState("");
-  const [codeError, setCodeError] = useState("");
   const [codeBusy, setCodeBusy] = useState(false);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState(false);
 
@@ -70,13 +70,12 @@ export default function InvitePage() {
 
   const onSubmitCode = async (e) => {
     e.preventDefault();
-    setCodeError("");
     if (!codeInput.trim()) return;
     setCodeBusy(true);
     try {
       await checkCode(codeInput.trim());
     } catch (err) {
-      setCodeError(tError(err) || t("invite.invalidBody"));
+      showError(tError(err) || t("invite.invalidBody"));
     } finally {
       setCodeBusy(false);
     }
@@ -84,17 +83,16 @@ export default function InvitePage() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     if (!USERNAME_RULE.test(username)) {
-      setError(t("auth.usernameRule"));
+      showError(t("auth.usernameRule"));
       return;
     }
     if (!PASSWORD_RULE.test(password)) {
-      setError(t("auth.passwordRule"));
+      showError(t("auth.passwordRule"));
       return;
     }
     if (password !== confirm) {
-      setError(t("auth.passwordMismatch"));
+      showError(t("auth.passwordMismatch"));
       return;
     }
     setBusy(true);
@@ -102,7 +100,7 @@ export default function InvitePage() {
       await api.post("/auth/claim-invite", { code, username, password });
       setPending(true);
     } catch (err) {
-      setError(tError(err));
+      showError(tError(err));
     } finally {
       setBusy(false);
     }
@@ -163,7 +161,6 @@ export default function InvitePage() {
                 required
               />
             </div>
-            {codeError && <p className="text-neon-red text-sm">{codeError}</p>}
             <button type="submit" disabled={codeBusy} className="btn-primary w-full">
               {codeBusy ? t("common.loading") : t("invite.continueCta")}
             </button>
@@ -224,7 +221,6 @@ export default function InvitePage() {
               required
             />
           </div>
-          {error && <p className="text-neon-red text-sm">{error}</p>}
           <button type="submit" disabled={busy} className="btn-primary w-full">
             {busy ? t("auth.registerBusy") : t("invite.claimCta")}
           </button>

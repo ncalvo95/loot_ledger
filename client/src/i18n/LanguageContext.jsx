@@ -43,9 +43,7 @@ function detectDefaultTheme() {
 }
 
 // Ayuda contextual (una línea explicando qué es el Fondo común, etc.):
-// arranca activada, a diferencia de tema/tono, porque Recurrentes ya
-// mostraba su propio texto de ayuda antes de que existiera este toggle
-// -- que arranque apagada sería sacarle algo a quien ya lo tenía.
+// arranca desactivada -- es opt-in, como tema/tono.
 function detectDefaultShowHelp() {
   try {
     const stored = localStorage.getItem(SHOW_HELP_STORAGE_KEY);
@@ -53,7 +51,7 @@ function detectDefaultShowHelp() {
   } catch {
     /* localStorage no disponible */
   }
-  return true;
+  return false;
 }
 
 function lookup(dict, path) {

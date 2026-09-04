@@ -6,6 +6,7 @@ import { AuthProvider } from "./context/AuthContext.jsx";
 import { LanguageProvider } from "./i18n/LanguageContext.jsx";
 import { InstallPromptProvider } from "./context/InstallPromptContext.jsx";
 import { ConfirmProvider } from "./context/ConfirmContext.jsx";
+import { ToastProvider } from "./context/ToastContext.jsx";
 import "./index.css";
 
 // import.meta.env.BASE_URL refleja el "base" de vite.config.js (ver
@@ -17,13 +18,15 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter basename={basename}>
       <LanguageProvider>
-        <ConfirmProvider>
-          <AuthProvider>
-            <InstallPromptProvider>
-              <App />
-            </InstallPromptProvider>
-          </AuthProvider>
-        </ConfirmProvider>
+        <ToastProvider>
+          <ConfirmProvider>
+            <AuthProvider>
+              <InstallPromptProvider>
+                <App />
+              </InstallPromptProvider>
+            </AuthProvider>
+          </ConfirmProvider>
+        </ToastProvider>
       </LanguageProvider>
     </BrowserRouter>
   </React.StrictMode>
