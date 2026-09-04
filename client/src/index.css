@@ -162,9 +162,14 @@ body {
   @apply block text-xs font-display uppercase tracking-widest text-slate-400 mb-1;
 }
 
+/* Los títulos principales (Dashboard, nombre de proyecto, login, etc.)
+   usan el mismo celeste fijo de la marca en vez de --neon-cyan -- así
+   no cambian según Gamer/Simple, solo el glow varía con --glow-alpha
+   como ya hacía. */
 .title-glow {
-  @apply font-display uppercase tracking-widest text-neon-cyan;
-  text-shadow: 0 0 12px rgb(var(--neon-cyan) / var(--glow-alpha));
+  @apply font-display uppercase tracking-widest;
+  color: rgb(var(--brand-color));
+  text-shadow: 0 0 12px rgb(var(--brand-color) / var(--glow-alpha));
 }
 
 .badge {
@@ -198,18 +203,21 @@ body {
 }
 
 /* Excepción: el nombre "LOOT LEDGER" de la marca en la barra de
-   navegación es siempre igual -- celeste con brillo suave, tipografía
-   Orbitron en mayúsculas -- en los 4 combos de modo/tema. No es un
-   término gamer que tenga sentido "traducir", así que no sigue las
-   reglas de --neon-cyan (que sí varía con el modo) ni las de más abajo
-   que aflojan mayúsculas/tracking/fuente en Simple. */
+   navegación siempre es celeste -- no sigue --neon-cyan porque ese
+   varía con el modo (Gamer/Simple). El brillo sí varía a propósito:
+   fuerte (varias capas) en Gamer, para que siga sintiéndose "neón", y
+   suave en Simple, en línea con el resto de esa estética. */
 .brand-wordmark {
   color: rgb(var(--brand-color));
-  text-shadow: 0 0 10px rgb(var(--brand-color) / 0.5);
+  text-shadow:
+    0 0 6px rgb(var(--brand-color) / 0.85),
+    0 0 16px rgb(var(--brand-color) / 0.6),
+    0 0 32px rgb(var(--brand-color) / 0.35);
 }
 
 [data-tone="simple"] .brand-wordmark {
   font-family: "Orbitron", "Rajdhani", system-ui, sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.15em;
+  text-shadow: 0 0 10px rgb(var(--brand-color) / 0.5);
 }
