@@ -112,8 +112,11 @@ export default function ProjectPage() {
         {/* flex-wrap acá (y en el <nav> de adentro) para que los botones
             pasen a una segunda línea en pantallas angostas en vez de forzar
             un ancho fijo -- eso es lo que hacía que la página entera fuera
-            más ancha que la pantalla en el celular. */}
-        <div className="flex items-center gap-2 flex-wrap">
+            más ancha que la pantalla en el celular. ml-auto para que, al
+            pasar a su propia línea, siga pegado a la derecha en vez de
+            quedar contra el borde izquierdo (justify-between del padre no
+            alcanza cuando este es el único elemento de esa línea). */}
+        <div className="flex items-center gap-2 flex-wrap ml-auto">
           {isIndividual && detail.canManage && (
             <button className="btn-secondary" onClick={() => setShowClone(true)}>
               {t("project.cloneCta")}

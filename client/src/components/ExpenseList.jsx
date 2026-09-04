@@ -105,11 +105,12 @@ export default function ExpenseList({ projectId, expenses, canManage, currentUse
       <div className="panel hidden sm:block overflow-x-auto p-0">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-[10px] uppercase tracking-widest text-slate-500 border-b border-ink-700">
+            <tr className="font-display text-left text-[10px] uppercase tracking-widest text-slate-500 border-b border-ink-700">
               <th className="px-3 py-2 font-normal">{t("ledger.title")}</th>
               <th className="px-3 py-2 font-normal">{t("ledger.category")}</th>
-              <th className="px-3 py-2 font-normal hidden md:table-cell">{t("ledger.forLine")}</th>
-              <th className="px-3 py-2 font-normal hidden lg:table-cell">{t("ledger.paidByShort")}</th>
+              <th className="px-3 py-2 font-normal hidden md:table-cell">{t("ledger.entity")}</th>
+              <th className="px-3 py-2 font-normal hidden md:table-cell">{t("ledger.paidByShort")}</th>
+              <th className="px-3 py-2 font-normal hidden lg:table-cell">{t("ledger.forLine")}</th>
               <th className="px-3 py-2 font-normal text-right">{t("ledger.amount")}</th>
             </tr>
           </thead>
@@ -150,9 +151,13 @@ export default function ExpenseList({ projectId, expenses, canManage, currentUse
                     </div>
                   </td>
                   <td className="px-3 py-2 hidden md:table-cell">
+                    <EntityTag e={e} />
+                    {!e.entityName && <span className="text-slate-600 text-xs">—</span>}
+                  </td>
+                  <td className="px-3 py-2 hidden md:table-cell text-slate-300 text-xs">{e.paidByUsername}</td>
+                  <td className="px-3 py-2 hidden lg:table-cell">
                     <ParticipantsSummary e={e} t={t} />
                   </td>
-                  <td className="px-3 py-2 hidden lg:table-cell text-slate-300 text-xs">{e.paidByUsername}</td>
                   <td className="px-3 py-2 text-right font-mono text-neon-green whitespace-nowrap">
                     {CURRENCY_SYMBOL[e.currency] || e.currency} {e.amount.toFixed(2)}
                   </td>
