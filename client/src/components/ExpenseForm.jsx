@@ -34,7 +34,7 @@ export default function ExpenseForm({
   const [title, setTitle] = useState(editingExpense?.title || "");
   const [currency, setCurrency] = useState(editingExpense?.currency || user?.defaultCurrency || "EUR");
   const [amount, setAmount] = useState(editingExpense ? String(editingExpense.amount) : "");
-  const [paidBy, setPaidBy] = useState(editingExpense?.paidBy || members[0]?.id || "");
+  const [paidBy, setPaidBy] = useState(editingExpense?.paidBy || user?.id || members[0]?.id || "");
   const [date, setDate] = useState(editingExpense?.date || today());
   const [participantIds, setParticipantIds] = useState(
     editingExpense ? editingExpense.participants.map((p) => p.userId) : members.map((m) => m.id)
