@@ -12,7 +12,26 @@
          vite.config.js (ver BASE_PATH) -- así estos links siguen
          apuntando bien tanto en la raíz del dominio como en un subpath. -->
     <link rel="manifest" href="%BASE_URL%manifest.webmanifest" />
-    <meta name="theme-color" content="#07070c" />
+    <meta name="theme-color" id="theme-color-meta" content="#07070c" />
+    <!-- Aplica el tema claro/oscuro guardado ANTES de que React monte, para
+         no mostrar un flash del tema oscuro por defecto si la persona ya
+         había elegido claro (mismo storage key que LanguageContext.jsx). -->
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem("loot_ledger_theme");
+          if (theme === "light") {
+            document.documentElement.dataset.theme = "light";
+            document.addEventListener("DOMContentLoaded", function () {
+              var meta = document.getElementById("theme-color-meta");
+              if (meta) meta.setAttribute("content", "#f6f8fb");
+            });
+          }
+        } catch (e) {
+          /* localStorage no disponible */
+        }
+      })();
+    </script>
     <link rel="apple-touch-icon" href="%BASE_URL%icons/apple-touch-icon.png" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />

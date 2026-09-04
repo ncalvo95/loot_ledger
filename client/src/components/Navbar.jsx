@@ -5,6 +5,7 @@ import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { useInstallPrompt } from "../context/InstallPromptContext.jsx";
 import LanguageToggle from "./LanguageToggle.jsx";
 import StyleToggle from "./StyleToggle.jsx";
+import ThemeToggle from "./ThemeToggle.jsx";
 import AccountMenu from "./AccountMenu.jsx";
 import ChangePasswordModal from "./ChangePasswordModal.jsx";
 import SessionsModal from "./SessionsModal.jsx";
@@ -121,6 +122,7 @@ export default function Navbar() {
             <div className="flex items-center gap-2 flex-wrap">
               <LanguageToggle />
               <StyleToggle />
+              <ThemeToggle />
             </div>
             <button
               onClick={() => {

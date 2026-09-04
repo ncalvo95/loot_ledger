@@ -39,6 +39,8 @@ export const translations = {
       menu: "Menú",
       styleGamer: "Gamer",
       styleSimple: "Simple",
+      themeDark: "Oscuro",
+      themeLight: "Claro",
       defaultCurrency: "Moneda por defecto",
     },
     sessions: {
@@ -359,6 +361,8 @@ export const translations = {
       menu: "Menu",
       styleGamer: "Gamer",
       styleSimple: "Simple",
+      themeDark: "Dark",
+      themeLight: "Light",
       defaultCurrency: "Default currency",
     },
     sessions: {

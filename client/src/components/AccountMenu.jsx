@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import LanguageToggle from "./LanguageToggle.jsx";
 import StyleToggle from "./StyleToggle.jsx";
+import ThemeToggle from "./ThemeToggle.jsx";
 
 const CURRENCIES = ["EUR", "USD", "ARS"];
 
@@ -40,6 +41,7 @@ export default function AccountMenu({ onChangePassword, onSessions, onLogout, cl
           <div className="flex items-center gap-2 flex-wrap">
             <LanguageToggle />
             <StyleToggle />
+            <ThemeToggle />
           </div>
           <div className="border-t border-ink-700 pt-2">
             <label className="label !mb-1">{t("nav.defaultCurrency")}</label>

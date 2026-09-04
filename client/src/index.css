@@ -2,6 +2,66 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Paleta como variables CSS (tripletes "R G B" para poder usarlas con la
+   sintaxis de opacidad de Tailwind, rgb(var(--x) / <alpha-value>)). El
+   tema oscuro es el de siempre y vive en :root; [data-theme="light"] lo
+   pisa. Esto es lo único que hace falta tocar para un modo claro/oscuro
+   -- ningún componente usa colores hardcodeados, todos pasan por estas
+   variables via tailwind.config.js. También deja la puerta abierta para
+   un segundo "skin" (ej. una piel formal) el día de mañana: alcanzaría
+   con otro bloque de variables bajo un nuevo atributo, sin tocar nada más.
+*/
+:root {
+  --ink-950: 7 7 12;
+  --ink-900: 12 12 22;
+  --ink-800: 20 20 31;
+  --ink-700: 28 28 44;
+  --ink-600: 38 38 58;
+
+  --neon-cyan: 45 230 255;
+  --neon-green: 61 255 160;
+  --neon-purple: 178 91 255;
+  --neon-pink: 255 79 216;
+  --neon-gold: 255 210 63;
+  --neon-red: 255 69 96;
+
+  --slate-100: 241 245 249;
+  --slate-200: 226 232 240;
+  --slate-300: 203 213 225;
+  --slate-400: 148 163 184;
+  --slate-500: 100 116 139;
+  --slate-600: 71 85 105;
+
+  --grid-line: var(--neon-cyan);
+  --grid-alpha: 0.05;
+  --glow-alpha: 0.55;
+}
+
+[data-theme="light"] {
+  --ink-950: 246 248 251;
+  --ink-900: 255 255 255;
+  --ink-800: 240 243 248;
+  --ink-700: 232 236 243;
+  --ink-600: 209 216 227;
+
+  --neon-cyan: 8 137 175;
+  --neon-green: 21 128 61;
+  --neon-purple: 126 34 206;
+  --neon-pink: 190 24 138;
+  --neon-gold: 180 83 9;
+  --neon-red: 185 28 28;
+
+  --slate-100: 15 23 42;
+  --slate-200: 30 41 59;
+  --slate-300: 51 65 85;
+  --slate-400: 71 85 105;
+  --slate-500: 100 116 139;
+  --slate-600: 148 163 184;
+
+  --grid-alpha: 0.05;
+  --glow-alpha: 0.16;
+}
+
 html, body, #root {
   height: 100%;
 }
@@ -14,13 +74,13 @@ html {
 }
 
 body {
-  @apply bg-ink-950 text-slate-100 font-body bg-grid bg-grid;
-  background-color: #07070c;
+  @apply bg-ink-950 text-slate-100 font-body;
   background-image:
-    linear-gradient(rgba(45,230,255,0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(45,230,255,0.05) 1px, transparent 1px);
+    linear-gradient(rgb(var(--grid-line) / var(--grid-alpha)) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--grid-line) / var(--grid-alpha)) 1px, transparent 1px);
   background-size: 28px 28px;
   min-height: 100vh;
+  transition: background-color 0.2s ease;
 }
 
 /* Por debajo de 16px, iOS Safari hace zoom automático al enfocar un campo
@@ -33,7 +93,7 @@ body {
 }
 
 ::selection {
-  background: rgba(45, 230, 255, 0.35);
+  background: rgb(var(--neon-cyan) / 0.35);
 }
 
 .panel {
@@ -70,7 +130,7 @@ body {
 
 .title-glow {
   @apply font-display uppercase tracking-widest text-neon-cyan;
-  text-shadow: 0 0 12px rgba(45,230,255,0.55);
+  text-shadow: 0 0 12px rgb(var(--neon-cyan) / var(--glow-alpha));
 }
 
 .badge {

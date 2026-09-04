@@ -1,9 +1,10 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { translations } from "./translations.js";
 
 const LanguageContext = createContext(null);
 const STORAGE_KEY = "loot_ledger_lang";
 const TONE_STORAGE_KEY = "loot_ledger_tone";
+const THEME_STORAGE_KEY = "loot_ledger_theme";
 
 function detectDefaultLang() {
   try {
@@ -26,6 +27,20 @@ function detectDefaultTone() {
   return "gamer";
 }
 
+// El default es "dark" (la estética de siempre) para no sorprender a nadie
+// -- el modo claro es opt-in. index.html tiene un script inline que aplica
+// esto mismo ANTES de que React monte, para no mostrar un flash oscuro
+// cuando alguien ya había elegido claro.
+function detectDefaultTheme() {
+  try {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    if (stored === "dark" || stored === "light") return stored;
+  } catch {
+    /* localStorage no disponible */
+  }
+  return "dark";
+}
+
 function lookup(dict, path) {
   return path.split(".").reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined), dict);
 }
@@ -33,6 +48,22 @@ function lookup(dict, path) {
 export function LanguageProvider({ children }) {
   const [lang, setLangState] = useState(detectDefaultLang);
   const [tone, setToneState] = useState(detectDefaultTone);
+  const [theme, setThemeState] = useState(detectDefaultTheme);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    const meta = document.getElementById("theme-color-meta");
+    if (meta) meta.setAttribute("content", theme === "light" ? "#f6f8fb" : "#07070c");
+  }, [theme]);
+
+  const setTheme = (next) => {
+    setThemeState(next);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, next);
+    } catch {
+      /* localStorage no disponible */
+    }
+  };
 
   const setLang = (next) => {
     setLangState(next);
@@ -80,7 +111,7 @@ export function LanguageProvider({ children }) {
   };
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang, tone, setTone, t, tError }}>
+    <LanguageContext.Provider value={{ lang, setLang, tone, setTone, theme, setTheme, t, tError }}>
       {children}
     </LanguageContext.Provider>
   );
