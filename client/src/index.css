@@ -62,6 +62,33 @@
   --glow-alpha: 0.16;
 }
 
+/* Modo Simple: además de cambiar la terminología (ver translations.js),
+   también afloja la estética gamer -- colores más apagados en vez de
+   neón, sin brillos ni grilla de fondo. [data-tone="simple"] combinado
+   con [data-theme="light"] cubre las 4 combinaciones posibles. No hace
+   falta nada más acá abajo (fuentes, mayúsculas, tracking): esas se
+   neutralizan pisando las utilidades de Tailwind más abajo en este
+   archivo, así que ningún componente necesitó tocarse. */
+[data-tone="simple"] {
+  --neon-cyan: 96 165 250;
+  --neon-green: 74 222 128;
+  --neon-purple: 129 140 248;
+  --neon-pink: 192 132 252;
+  --neon-gold: 250 204 21;
+  --neon-red: 248 113 113;
+  --glow-alpha: 0;
+  --grid-alpha: 0;
+}
+
+[data-tone="simple"][data-theme="light"] {
+  --neon-cyan: 37 99 235;
+  --neon-green: 22 163 74;
+  --neon-purple: 79 70 229;
+  --neon-pink: 147 51 234;
+  --neon-gold: 217 119 6;
+  --neon-red: 220 38 38;
+}
+
 html, body, #root {
   height: 100%;
 }
@@ -135,4 +162,30 @@ body {
 
 .badge {
   @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-display uppercase tracking-widest border;
+}
+
+/* Modo Simple, parte 2: la tipografía "HUD" (Orbitron en mayúsculas con
+   tracking ancho) es tan parte de la onda gamer como los nombres Loot/
+   Party/Respawn. En vez de ir a sacarle uppercase/tracking-widest/
+   font-display a mano en cada componente (son ~20 archivos), se pisan
+   acá las utilidades de Tailwind mismas -- un selector con [data-tone]
+   siempre gana en especificidad a la clase sola, así que alcanza con
+   esto para que TODO lo que ya usa esas clases (botones, badges,
+   labels, títulos) se vea neutral automáticamente. */
+[data-tone="simple"] .font-display,
+[data-tone="simple"] .font-body {
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+[data-tone="simple"] .font-mono {
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+
+[data-tone="simple"] .uppercase {
+  text-transform: none;
+}
+
+[data-tone="simple"] .tracking-widest,
+[data-tone="simple"] .tracking-\[0\.15em\] {
+  letter-spacing: normal;
 }

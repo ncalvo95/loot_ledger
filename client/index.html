@@ -13,9 +13,10 @@
          apuntando bien tanto en la raíz del dominio como en un subpath. -->
     <link rel="manifest" href="%BASE_URL%manifest.webmanifest" />
     <meta name="theme-color" id="theme-color-meta" content="#07070c" />
-    <!-- Aplica el tema claro/oscuro guardado ANTES de que React monte, para
-         no mostrar un flash del tema oscuro por defecto si la persona ya
-         había elegido claro (mismo storage key que LanguageContext.jsx). -->
+    <!-- Aplica el tema claro/oscuro y el modo Gamer/Simple guardados ANTES
+         de que React monte, para no mostrar un flash del look por defecto
+         si la persona ya había elegido otra cosa (mismos storage keys que
+         LanguageContext.jsx). -->
     <script>
       (function () {
         try {
@@ -26,6 +27,10 @@
               var meta = document.getElementById("theme-color-meta");
               if (meta) meta.setAttribute("content", "#f6f8fb");
             });
+          }
+          var tone = localStorage.getItem("loot_ledger_tone");
+          if (tone === "simple") {
+            document.documentElement.dataset.tone = "simple";
           }
         } catch (e) {
           /* localStorage no disponible */

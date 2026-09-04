@@ -56,6 +56,12 @@ export function LanguageProvider({ children }) {
     if (meta) meta.setAttribute("content", theme === "light" ? "#f6f8fb" : "#07070c");
   }, [theme]);
 
+  // El modo Simple también afloja la estética (ver index.css) -- mismo
+  // mecanismo de atributo en <html> que el tema claro/oscuro.
+  useEffect(() => {
+    document.documentElement.dataset.tone = tone;
+  }, [tone]);
+
   const setTheme = (next) => {
     setThemeState(next);
     try {
