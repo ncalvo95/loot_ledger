@@ -189,3 +189,14 @@ body {
 [data-tone="simple"] .tracking-\[0\.15em\] {
   letter-spacing: normal;
 }
+
+/* Excepción: el nombre "LOOT LEDGER" de la marca en la barra de
+   navegación mantiene siempre su tipografía original, incluso en modo
+   Simple -- es la identidad de la app, no un texto con onda gamer que
+   tenga sentido "traducir" a algo más neutro. Misma especificidad que
+   las reglas de arriba, pero va después así gana por orden. */
+[data-tone="simple"] .brand-wordmark {
+  font-family: "Orbitron", "Rajdhani", system-ui, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
