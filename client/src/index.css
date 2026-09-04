@@ -35,6 +35,11 @@
   --grid-line: var(--neon-cyan);
   --grid-alpha: 0.05;
   --glow-alpha: 0.55;
+
+  /* Color fijo de la marca "Loot Ledger" en la barra de navegación: no
+     depende de --neon-cyan porque ese varía con el modo (Gamer/Simple),
+     y el celeste de la marca se pidió que quede igual en los dos. */
+  --brand-color: 96 165 250;
 }
 
 [data-theme="light"] {
@@ -60,6 +65,8 @@
 
   --grid-alpha: 0.05;
   --glow-alpha: 0.16;
+
+  --brand-color: 37 99 235;
 }
 
 /* Modo Simple: además de cambiar la terminología (ver translations.js),
@@ -191,10 +198,16 @@ body {
 }
 
 /* Excepción: el nombre "LOOT LEDGER" de la marca en la barra de
-   navegación mantiene siempre su tipografía original, incluso en modo
-   Simple -- es la identidad de la app, no un texto con onda gamer que
-   tenga sentido "traducir" a algo más neutro. Misma especificidad que
-   las reglas de arriba, pero va después así gana por orden. */
+   navegación es siempre igual -- celeste con brillo suave, tipografía
+   Orbitron en mayúsculas -- en los 4 combos de modo/tema. No es un
+   término gamer que tenga sentido "traducir", así que no sigue las
+   reglas de --neon-cyan (que sí varía con el modo) ni las de más abajo
+   que aflojan mayúsculas/tracking/fuente en Simple. */
+.brand-wordmark {
+  color: rgb(var(--brand-color));
+  text-shadow: 0 0 10px rgb(var(--brand-color) / 0.5);
+}
+
 [data-tone="simple"] .brand-wordmark {
   font-family: "Orbitron", "Rajdhani", system-ui, sans-serif;
   text-transform: uppercase;

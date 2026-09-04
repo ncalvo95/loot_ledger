@@ -63,10 +63,7 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 min-w-0">
           <img src={`${import.meta.env.BASE_URL}icons/icon-transparent.png`} alt="" className="w-6 h-6 shrink-0" />
-          <span
-            className="brand-wordmark font-display font-bold uppercase tracking-[0.15em] text-neon-cyan text-lg truncate"
-            style={{ textShadow: "0 0 10px rgba(45,230,255,0.5)" }}
-          >
+          <span className="brand-wordmark font-display font-bold uppercase tracking-[0.15em] text-lg truncate">
             {t("appName")}
           </span>
         </Link>
