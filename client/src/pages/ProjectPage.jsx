@@ -34,6 +34,8 @@ export default function ProjectPage() {
   const [showClone, setShowClone] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [showCategories, setShowCategories] = useState(false);
+  const [showEntities, setShowEntities] = useState(false);
 
   const isIndividual = detail?.project.type === "individual";
   const TABS = [
@@ -178,18 +180,6 @@ export default function ProjectPage() {
 
       {tab === "ledger" && (
         <div className="space-y-5">
-          <CategoriesPanel
-            projectId={id}
-            categories={detail.categories}
-            onChanged={() => Promise.all([loadDetail(), refreshAll()])}
-          />
-
-          <EntitiesPanel
-            projectId={id}
-            entities={detail.entities}
-            onChanged={() => Promise.all([loadDetail(), refreshAll()])}
-          />
-
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <input
@@ -228,38 +218,90 @@ export default function ProjectPage() {
                 🧾 {t("respawn.installmentBadge")}
               </label>
             </div>
-            {!showForm && (
-              <button
-                className="btn-primary"
-                onClick={() => {
-                  setEditingExpense(null);
-                  setShowForm(true);
-                }}
-              >
-                + {t("ledger.addExpense")}
+            <div className="flex items-center gap-2">
+              <button className="btn-secondary" onClick={() => setShowCategories(true)}>
+                {t("ledger.manageCategories")}
               </button>
-            )}
+              <button className="btn-secondary" onClick={() => setShowEntities(true)}>
+                {t("ledger.manageEntities")}
+              </button>
+              {!showForm && (
+                <button
+                  className="btn-primary"
+                  onClick={() => {
+                    setEditingExpense(null);
+                    setShowForm(true);
+                  }}
+                >
+                  + {t("ledger.addExpense")}
+                </button>
+              )}
+            </div>
           </div>
 
           {showForm && (
-            <ExpenseForm
-              key={editingExpense?.id || "new"}
-              projectId={id}
-              members={memberOptions}
-              categories={detail.categories}
-              entities={detail.entities}
-              editingExpense={editingExpense}
-              individual={isIndividual}
-              onCreated={async () => {
-                setShowForm(false);
-                setEditingExpense(null);
-                await Promise.all([refreshAll(), loadDetail()]);
-              }}
-              onCancel={() => {
-                setShowForm(false);
-                setEditingExpense(null);
-              }}
-            />
+            <div className="fixed inset-0 bg-black/70 flex items-start justify-center overflow-y-auto px-4 py-8 z-30">
+              <div className="w-full max-w-2xl">
+                <ExpenseForm
+                  key={editingExpense?.id || "new"}
+                  projectId={id}
+                  members={memberOptions}
+                  categories={detail.categories}
+                  entities={detail.entities}
+                  editingExpense={editingExpense}
+                  individual={isIndividual}
+                  onCreated={async () => {
+                    setShowForm(false);
+                    setEditingExpense(null);
+                    await Promise.all([refreshAll(), loadDetail()]);
+                  }}
+                  onCancel={() => {
+                    setShowForm(false);
+                    setEditingExpense(null);
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {showCategories && (
+            <div className="fixed inset-0 bg-black/70 flex items-start justify-center overflow-y-auto px-4 py-8 z-30">
+              <div className="panel p-6 w-full max-w-md space-y-4 shadow-neon">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="font-display uppercase tracking-widest text-neon-purple text-sm">
+                    {t("ledger.manageCategories")}
+                  </h3>
+                  <button className="btn-secondary !px-2 !py-1 text-[10px]" onClick={() => setShowCategories(false)}>
+                    {t("common.close")}
+                  </button>
+                </div>
+                <CategoriesPanel
+                  projectId={id}
+                  categories={detail.categories}
+                  onChanged={() => Promise.all([loadDetail(), refreshAll()])}
+                />
+              </div>
+            </div>
+          )}
+
+          {showEntities && (
+            <div className="fixed inset-0 bg-black/70 flex items-start justify-center overflow-y-auto px-4 py-8 z-30">
+              <div className="panel p-6 w-full max-w-md space-y-4 shadow-neon">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="font-display uppercase tracking-widest text-neon-cyan text-sm">
+                    {t("ledger.manageEntities")}
+                  </h3>
+                  <button className="btn-secondary !px-2 !py-1 text-[10px]" onClick={() => setShowEntities(false)}>
+                    {t("common.close")}
+                  </button>
+                </div>
+                <EntitiesPanel
+                  projectId={id}
+                  entities={detail.entities}
+                  onChanged={() => Promise.all([loadDetail(), refreshAll()])}
+                />
+              </div>
+            </div>
           )}
 
           <ExpenseList
