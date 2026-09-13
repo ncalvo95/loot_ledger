@@ -517,7 +517,7 @@ migrateInstallments();
 function seedAdmin() {
   const existing = db.prepare("SELECT id FROM users WHERE username = ?").get("administrator");
   if (existing) return;
-  const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || "11223344";
+  const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || "1234";
   const hash = bcrypt.hashSync(defaultPassword, 10);
   db.prepare(
     "INSERT INTO users (username, password_hash, role, status) VALUES (?, ?, 'admin', 'active')"
