@@ -10,7 +10,7 @@ Aplicación web de triangulación de gastos entre grupos (al estilo Tricount / S
 
 ### Por qué está pensada tan liviana
 
-No es una precaución teórica — así es como corre en producción hoy: la app vive en una **Raspberry Pi 3B** (1 GB de RAM), compartiendo el mismo equipo con una web portfolio y otra aplicación del mismo estilo, cada una en su propio **contenedor Docker**, detrás de un único reverse proxy. Con tres apps repartiéndose 1 GB de RAM, cada dependencia pesada se nota, así que el criterio en cada decisión técnica fue el mismo: SQLite en vez de un motor de base de datos aparte, un solo proceso Node sirviendo API y frontend, sin Redis ni ningún contenedor de soporte extra. Nada de esto es un límite del proyecto — es simplemente correr cómodo, con margen, en el hardware real donde vive.
+Así es como corre en producción hoy: la app vive en una **Raspberry Pi 3B** (1 GB RAM), compartiendo el mismo equipo con una web portfolio y otra aplicación del mismo estilo, cada una en su propio **contenedor Docker**, detrás de un único reverse proxy. Cada dependencia pesada se nota, así que el criterio en cada decisión técnica fue el mismo: SQLite en vez de un motor de base de datos aparte, un solo proceso Node sirviendo API y frontend, sin Redis ni ningún contenedor de soporte extra.
 
 ### Stack técnico
 
@@ -20,7 +20,7 @@ No es una precaución teórica — así es como corre en producción hoy: la app
 - **Exportación**: `exceljs`, genera `.xlsx` reales con tablas de Excel (no solo celdas sueltas).
 - **PWA**: instalable en el celular o la compu (manifest + service worker mínimo), con aviso propio cuando hay una versión nueva del servidor.
 
-> Nota sobre monedas: se usan los códigos ISO 4217 válidos `EUR`, `USD` y `ARS` (el peso argentino es `ARS`).
+> Nota sobre monedas: se usan los códigos ISO 4217 válidos `EUR`, `USD` y `ARS`.
 
 ### Estructura del repo
 
@@ -33,7 +33,7 @@ Dockerfile, docker-compose.yml
 ```
 
 > Para instalar en un SSD por USB (recomendado para uso 24/7), para el
-> acceso remoto (DuckDNS o Cloudflare Tunnel) y para hacer convivir esta
+> acceso remoto (DuckDNS en un principio, luego se adiquiro dominion Cloudflare) y para hacer convivir esta
 > app con otro sitio en el mismo dominio (subdominio o subpath, con la
 > misma instancia de Caddy) — ver
 > [`docs/deploy-ssd-domain.md`](docs/deploy-ssd-domain.md).
@@ -41,9 +41,9 @@ Dockerfile, docker-compose.yml
 ### Usuario administrador por defecto
 
 - Usuario: `administrator`
-- Contraseña: `11223344` (se puede sobreescribir con la variable `ADMIN_DEFAULT_PASSWORD` **antes del primer arranque**, ya que solo se usa para crear la cuenta la primera vez)
+- Contraseña: `1234` (se puede sobreescribir con la variable `ADMIN_DEFAULT_PASSWORD` **antes del primer arranque**, ya que solo se usa para crear la cuenta la primera vez)
 
-**Importante**: cambiá esta contraseña apenas despliegues, desde el Panel de administración (reseteo de contraseña) con la cuenta `administrator`.
+**Importante**: si no seteaste una password diferente que la default, cambiá esta contraseña apenas despliegues, desde el Panel de administración (reseteo de contraseña) con la cuenta `administrator`.
 
 ### Opción A: Docker (recomendado)
 
