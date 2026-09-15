@@ -236,6 +236,35 @@ router.post("/password-reset-requests/:id/resolve", (req, res) => {
 // antes). Ahí se borra todo -- gastos, categorías, entidades, el
 // proyecto en sí -- y de paso se purgan también los ex-miembros que
 // hayan quedado sin ningún otro rastro financiero en el servidor.
+router.get("/feedback", (req, res) => {
+  const items = db
+    .prepare(
+      `SELECT f.id, f.category, f.message, f.status, f.created_at, f.reviewed_at, u.username
+       FROM feedback f
+       JOIN users u ON u.id = f.user_id
+       ORDER BY f.status ASC, f.created_at DESC`
+    )
+    .all();
+  res.json({ items });
+});
+
+router.post("/feedback/:id/review", (req, res) => {
+  const item = db.prepare("SELECT * FROM feedback WHERE id = ?").get(req.params.id);
+  if (!item) return res.status(404).json({ error: "Feedback no encontrado." });
+
+  const nextStatus = item.status === "reviewed" ? "open" : "reviewed";
+  if (nextStatus === "reviewed") {
+    db.prepare(
+      "UPDATE feedback SET status = 'reviewed', reviewed_at = datetime('now'), reviewed_by = ? WHERE id = ?"
+    ).run(req.user.id, item.id);
+  } else {
+    db.prepare(
+      "UPDATE feedback SET status = 'open', reviewed_at = NULL, reviewed_by = NULL WHERE id = ?"
+    ).run(item.id);
+  }
+  res.json({ ok: true, status: nextStatus });
+});
+
 router.post("/projects/:id/purge", (req, res) => {
   const project = db.prepare("SELECT * FROM projects WHERE id = ?").get(req.params.id);
   if (!project) return res.status(404).json({ error: "Proyecto no encontrado." });

@@ -12,7 +12,7 @@ const CURRENCIES = ["EUR", "USD", "ARS"];
 // preferencia/config personal (idioma, modo gamer/simple, contraseña,
 // sesiones, logout) para que la barra de navegacion no tenga un boton
 // suelto por cada cosa.
-export default function AccountMenu({ onChangePassword, onSessions, onLogout, className = "" }) {
+export default function AccountMenu({ onChangePassword, onSessions, onFeedback, onLogout, className = "" }) {
   const { t } = useLanguage();
   const { user, setDefaultCurrency } = useAuth();
   const [open, setOpen] = useState(false);
@@ -75,6 +75,13 @@ export default function AccountMenu({ onChangePassword, onSessions, onLogout, cl
               className="btn-ghost w-full !justify-start !px-2 !py-1.5"
             >
               {t("nav.sessions")}
+            </button>
+            <button
+              type="button"
+              onClick={closeAnd(onFeedback)}
+              className="btn-ghost w-full !justify-start !px-2 !py-1.5"
+            >
+              {t("nav.feedback")}
             </button>
           </div>
           <div className="border-t border-ink-700 pt-2">

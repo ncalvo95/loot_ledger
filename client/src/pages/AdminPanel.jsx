@@ -37,6 +37,7 @@ export default function AdminPanel() {
   const [users, setUsers] = useState([]);
   const [projects, setProjects] = useState([]);
   const [resetRequests, setResetRequests] = useState([]);
+  const [feedbackItems, setFeedbackItems] = useState([]);
   const [purgeUserTarget, setPurgeUserTarget] = useState(null);
   const [purgeProjectTarget, setPurgeProjectTarget] = useState(null);
   const [inviteCodeModal, setInviteCodeModal] = useState(null); // { title, code }
@@ -64,11 +65,16 @@ export default function AdminPanel() {
     const data = await api.get("/projects");
     setProjects(data.active);
   };
+  const loadFeedback = async () => {
+    const data = await api.get("/admin/feedback");
+    setFeedbackItems(data.items);
+  };
 
   const refreshAll = () => {
     loadUsers();
     loadResetRequests();
     loadProjects();
+    loadFeedback();
   };
 
   useEffect(() => {
@@ -231,11 +237,29 @@ export default function AdminPanel() {
     }
   };
 
+  const openFeedbackCount = feedbackItems.filter((f) => f.status === "open").length;
+
+  const toggleFeedbackReview = async (item) => {
+    try {
+      await api.post(`/admin/feedback/${item.id}/review`);
+      await loadFeedback();
+    } catch (err) {
+      showError(tError(err));
+    }
+  };
+
+  const FEEDBACK_CATEGORY_STYLE = {
+    bug: "border-neon-red/60 text-neon-red",
+    feature: "border-neon-purple/60 text-neon-purple",
+    other: "border-slate-600 text-slate-400",
+  };
+
   const TABS = [
     { key: "pending", label: t("admin.tabs.pending"), badge: pendingUsers.length },
     { key: "users", label: t("admin.tabs.users") },
     { key: "projects", label: t("admin.tabs.projects") },
     { key: "resets", label: t("admin.tabs.resets"), badge: resetRequests.length },
+    { key: "feedback", label: t("admin.tabs.feedback"), badge: openFeedbackCount },
   ];
 
   return (
@@ -498,6 +522,41 @@ export default function AdminPanel() {
                 >
                   {t("admin.resolve")}
                 </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {tab === "feedback" && (
+        <div className="panel p-5 space-y-3">
+          <h2 className="font-display uppercase tracking-widest text-slate-300 text-sm">
+            {t("admin.tabs.feedback")}
+          </h2>
+          {feedbackItems.length === 0 ? (
+            <p className="text-slate-500 text-sm">{t("admin.feedbackEmpty")}</p>
+          ) : (
+            feedbackItems.map((f) => (
+              <div
+                key={f.id}
+                className={`bg-ink-800/60 rounded-lg px-3 py-3 space-y-2 ${f.status === "reviewed" ? "opacity-60" : ""}`}
+              >
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`badge ${FEEDBACK_CATEGORY_STYLE[f.category] || ""}`}>
+                      {t(`feedback.category.${f.category}`)}
+                    </span>
+                    <span className="text-sm text-slate-300">{f.username}</span>
+                    <span className="text-[10px] text-slate-500">{f.created_at}</span>
+                  </div>
+                  <button
+                    className={f.status === "reviewed" ? "btn-secondary !px-2 !py-1 text-[10px]" : "btn-primary !px-2 !py-1 text-[10px]"}
+                    onClick={() => toggleFeedbackReview(f)}
+                  >
+                    {f.status === "reviewed" ? t("admin.feedbackReopen") : t("admin.feedbackMarkReviewed")}
+                  </button>
+                </div>
+                <p className="text-sm text-slate-200 whitespace-pre-wrap">{f.message}</p>
               </div>
             ))
           )}

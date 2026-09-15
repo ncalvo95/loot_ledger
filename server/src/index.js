@@ -19,6 +19,7 @@ const treasuryRoutes = require("./routes/treasury.routes");
 const recurringRoutes = require("./routes/recurring.routes");
 const exportRoutes = require("./routes/export.routes");
 const questsRoutes = require("./routes/quests.routes");
+const feedbackRoutes = require("./routes/feedback.routes");
 const { MOUNT_PATH } = require("./base-path");
 
 const app = express();
@@ -51,6 +52,7 @@ router.use("/api/projects/:id/treasury", treasuryRoutes);
 router.use("/api/projects/:id/recurring", recurringRoutes);
 router.use("/api/projects/:id/export", exportRoutes);
 router.use("/api/quests", questsRoutes);
+router.use("/api/feedback", feedbackRoutes);
 
 router.get("/api/health", (req, res) => res.json({ ok: true }));
 

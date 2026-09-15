@@ -418,6 +418,20 @@ CREATE TABLE IF NOT EXISTS sessions (
   expires_at TEXT NOT NULL
 );
 
+-- Feedback/reportes de bug/pedidos de funcionalidad que cualquier usuario
+-- puede mandar desde su menú de cuenta -- el administrator los revisa
+-- desde su Panel (pestaña "Feedback").
+CREATE TABLE IF NOT EXISTS feedback (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  category TEXT NOT NULL DEFAULT 'other' CHECK (category IN ('bug','feature','other')),
+  message TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','reviewed')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  reviewed_at TEXT,
+  reviewed_by INTEGER REFERENCES users(id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_expenses_project ON expenses(project_id);
 CREATE INDEX IF NOT EXISTS idx_treasury_contributions_project ON treasury_contributions(project_id);
 CREATE INDEX IF NOT EXISTS idx_recurring_expenses_project ON recurring_expenses(project_id);
@@ -427,6 +441,7 @@ CREATE INDEX IF NOT EXISTS idx_project_members_project ON project_members(projec
 CREATE INDEX IF NOT EXISTS idx_project_members_user ON project_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_password_reset_requests_user ON password_reset_requests(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback(status);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_invite_code ON users(invite_code);
 `);
 

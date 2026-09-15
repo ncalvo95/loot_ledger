@@ -10,6 +10,7 @@ import HelpToggle from "./HelpToggle.jsx";
 import AccountMenu from "./AccountMenu.jsx";
 import ChangePasswordModal from "./ChangePasswordModal.jsx";
 import SessionsModal from "./SessionsModal.jsx";
+import FeedbackModal from "./FeedbackModal.jsx";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -18,6 +19,7 @@ export default function Navbar() {
   const navigate = useNavigate();
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showSessions, setShowSessions] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   if (!user) return null;
@@ -84,6 +86,7 @@ export default function Navbar() {
           <AccountMenu
             onChangePassword={() => setShowChangePassword(true)}
             onSessions={() => setShowSessions(true)}
+            onFeedback={() => setShowFeedback(true)}
             onLogout={handleLogout}
           />
         </nav>
@@ -141,6 +144,15 @@ export default function Navbar() {
             >
               {t("nav.sessions")}
             </button>
+            <button
+              onClick={() => {
+                setShowFeedback(true);
+                setMobileOpen(false);
+              }}
+              className="btn-ghost w-full !justify-start !px-2 !py-1.5"
+            >
+              {t("nav.feedback")}
+            </button>
           </div>
 
           <div className="border-t border-ink-700 pt-3">
@@ -153,6 +165,7 @@ export default function Navbar() {
 
       {showChangePassword && <ChangePasswordModal onClose={() => setShowChangePassword(false)} />}
       {showSessions && <SessionsModal onClose={() => setShowSessions(false)} />}
+      {showFeedback && <FeedbackModal onClose={() => setShowFeedback(false)} />}
     </header>
   );
 }
